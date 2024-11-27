@@ -1,0 +1,16 @@
+.scratchspace/*
+!.scratchspace/.gitkeep
+target/
+.lester/**
+!lester/.gitkeep
+data/synthetic_mails_100000.csv
+.DS_Store
+tmp
+build/
+dist/
+.idea/
+.ipynb_checkpoints/
+venv/
+*.swp
+*.py[co]
+__pycache__
