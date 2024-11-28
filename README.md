@@ -20,9 +20,9 @@ Messy Machine Learning Pipelines".
 ## Running example
 
  * [Messy original pipeline](messy_original_pipeline.py) for our running example
- * lester/benchmark/creditcard_dataprep.py synthesised_code.py#L2
- * lester/benchmark/creditcard_featurisation.py synthesised_code.py#L117
- * lester/benchmark/sklearnlogreg_model.py synthesised_code.py#L117
+ * lester/benchmark/creditcard_dataprep.py synthesised_code.py#L2 lester/rewrite/__init__.py#L17 generate_dataprep_code 
+ * lester/benchmark/creditcard_featurisation.py synthesised_code.py#L117 lester/rewrite/__init__.py#L40 generate_featurisation_code
+ * lester/benchmark/sklearnlogreg_model.py synthesised_code.py#L117 lester/rewrite/__init__.py#L54 enerate_model_code
 
 ## Experiments
 
