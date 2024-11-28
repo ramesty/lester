@@ -24,6 +24,8 @@ Messy Machine Learning Pipelines".
  *  [Synthesised featurisation code](synthesised_code.py#L117) from [messy input code](lester/benchmark/creditcard_featurisation.py) via the [generate_featurisation_code](lester/rewrite/__init__.py#L40)
  *  [Synthesised learning code](synthesised_code.py#L117) from [messy input code](lester/benchmark/sklearnlogreg_model.py) via the  [generate_model_code](lester/rewrite/__init__.py#L54)
 
+![screenshot](running-example.jpg)
+
 ## Experiments
 
 * [evaluation of the synthesised code](experiment__rewrite.py) for the nine example tasks
