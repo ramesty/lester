@@ -20,11 +20,12 @@ Messy Machine Learning Pipelines".
 ## Running example
 
  * [Messy original pipeline](messy_original_pipeline.py) for our running example
+ * Using OpenAI's [gpt-4o](https://openai.com/index/hello-gpt-4o/) model via the langchain API
  *  [Synthesised data preparation code](synthesised_code.py#L2) from [messy input code](lester/benchmark/creditcard_dataprep.py)  via the [generate_dataprep_code](lester/rewrite/__init__.py#L17)
  *  [Synthesised featurisation code](synthesised_code.py#L117) from [messy input code](lester/benchmark/creditcard_featurisation.py) via the [generate_featurisation_code](lester/rewrite/__init__.py#L40)
  *  [Synthesised learning code](synthesised_code.py#L117) from [messy input code](lester/benchmark/sklearnlogreg_model.py) via the  [generate_model_code](lester/rewrite/__init__.py#L54)
 
-![screenshot](running-example.jpg)
+![example code transformation](running-example.jpg)
 
 ## Experiments
 
