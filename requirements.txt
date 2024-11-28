@@ -12,3 +12,4 @@ langchain-anthropic==0.2.1
 langgraph-checkpoint-sqlite==2.0.0
 langchain-openai==0.2.1
 pyarrow==18.1.0
+nltk==3.8.1

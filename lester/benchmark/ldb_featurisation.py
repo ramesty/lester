@@ -34,45 +34,17 @@ def preprocess(data_total, lower_dimension=100):
     def input_schema(self):
         return ['product_id', 'product_category', 'product_name', 'rating', 'review']
 
-    def run_manually_rewritten_code(self, params):
-        import re
-        from sklearn.compose import ColumnTransformer
-        from sklearn.preprocessing import FunctionTransformer
-        from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.decomposition import TruncatedSVD
-        from sklearn.pipeline import Pipeline
-
-        def concat_and_clean(df):
-            concatenated = ''.join(df)
-            cleaned = re.sub('[^A-Za-z]+', ' ', concatenated).strip().lower()
-            return cleaned
-
-        lower_dimension = 100
-
-        text_transformation = Pipeline([
-            ('clean', FunctionTransformer(lambda df: df.apply(concat_and_clean, axis=1))),
-            ('tfidf', TfidfVectorizer()),
-            ('svd', TruncatedSVD(n_components=lower_dimension, n_iter=7, random_state=42)),
-        ])
-
-        featuriser = ColumnTransformer(transformers=[
-            ('rating', FunctionTransformer(lambda x: x), ['rating']),
-            ('textual_features', text_transformation, ['product_name', 'review']),
-        ])
-
-        return featuriser
-
     def evaluate_transformed_code(self, transformed_code):
-        variables_for_exec = {}
-        exec(transformed_code, variables_for_exec)
+        encoders_by_column = self.extract_encoders_by_column(transformed_code)
+        assert len(encoders_by_column.keys()) == 3
 
+        assert 'product_name' in encoders_by_column
+        assert 'review' in encoders_by_column
+        assert 'rating' in encoders_by_column
+
+        _, rating_encoder = encoders_by_column['rating'][0].steps[-1]
         import pandas as pd
-        prepared_data = pd.read_csv("data/benchmark/ldb_featurisation.csv")
+        ratings = pd.Series([[1], [2], [3], [4], [5]])
+        transformed_ratings = rating_encoder.transform(ratings).squeeze()
+        assert (transformed_ratings == ratings).all()
 
-        generated_column_transformer = variables_for_exec['__featurise']()
-        generated_X = generated_column_transformer.fit_transform(prepared_data)
-
-        manual_column_transformer = self.run_manually_rewritten_code({})
-        manual_X = manual_column_transformer.fit_transform(prepared_data)
-
-        assert generated_X.shape == manual_X.shape

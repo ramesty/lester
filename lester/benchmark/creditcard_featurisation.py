@@ -47,61 +47,21 @@ X = np.concatenate((
     def input_schema(self):
         return ['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']
 
-    def run_manually_rewritten_code(self, params):
-
-        import numpy as np
-        from sklearn.base import BaseEstimator, TransformerMixin
-        from sklearn.preprocessing import StandardScaler, OneHotEncoder
-        from sklearn.pipeline import Pipeline
-        from sklearn.compose import ColumnTransformer
-        from sentence_transformers import SentenceTransformer
-
-        class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
-            def __init__(self, model_name="all-mpnet-base-v2"):
-                self.model_name = model_name
-                self.model = None
-
-            def fit(self, X, y=None):
-                self.model = SentenceTransformer(self.model_name)
-                return self
-
-            def transform(self, X, y=None):
-                X = [elem[0] for elem in X.values]
-                return self.model.encode(X)
-
-        class WordCountTransformer(BaseEstimator, TransformerMixin):
-            def fit(self, X, y=None):
-                return self
-
-            def transform(self, X, y=None):
-                X = [elem[0] for elem in X.values]
-                return np.array([len(text.split(" ")) for text in X]).reshape(-1, 1)
-
-        subject_length_pipeline = Pipeline([('length', WordCountTransformer()), ('scaler', StandardScaler())])
-        country_pipeline = Pipeline([('onehot', OneHotEncoder(sparse_output=False))])
-
-        preprocessor = ColumnTransformer([
-            ('subject_embedding', SentenceEmbeddingTransformer(), ['title']),
-            ('text_embedding', SentenceEmbeddingTransformer(), ['text']),
-            ('subject_length', subject_length_pipeline, ['title']),
-            ('country', country_pipeline, ['country'])
-        ])
-
-        return preprocessor
-
     def evaluate_transformed_code(self, transformed_code):
-        variables_for_exec = {}
-        exec(transformed_code, variables_for_exec)
 
-        import pandas as pd
-        prepared_data = pd.read_csv("data/benchmark/creditcard_featurisation.csv")
+        encoders_by_column = self.extract_encoders_by_column(transformed_code)
 
-        generated_column_transformer = variables_for_exec['__featurise']()
-        generated_X = generated_column_transformer.fit_transform(prepared_data)
+        from sklearn.preprocessing import OneHotEncoder
 
-        manual_column_transformer = self.run_manually_rewritten_code({})
-        manual_X = manual_column_transformer.fit_transform(prepared_data)
+        assert len(encoders_by_column.keys()) == 3
+        assert 'title' in encoders_by_column
+        assert 'text' in encoders_by_column
+        assert 'country' in encoders_by_column
 
-        assert generated_X.shape == manual_X.shape
+        assert isinstance(encoders_by_column['country'][0], OneHotEncoder)
 
+        encoded = encoders_by_column['text'][0].transform(['a', 'b', 'c'])
+        assert len(encoded) == 3
+        assert encoded[0].shape[0] == 768
 
+        assert len(encoders_by_column['title']) == 2

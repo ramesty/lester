@@ -33,34 +33,27 @@ X = scaler.fit_transform(X)
         return ['PassengerId', 'Survived', 'Pclass', 'Name', 'Sex', 'Age', 'SibSp', 'Parch',
                 'Ticket', 'Fare', 'Cabin', 'Embarked']
 
-    def run_manually_rewritten_code(self, params):
-        from sklearn.compose import ColumnTransformer
-        from sklearn.preprocessing import OneHotEncoder
-        from sklearn.preprocessing import StandardScaler
-
-        featuriser = ColumnTransformer(transformers=[
-            ('categorical', OneHotEncoder(), ['Sex', 'Embarked']),
-            ('numeric', StandardScaler(), ['PassengerId', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare']),
-        ])
-
-        return featuriser
-
     def evaluate_transformed_code(self, transformed_code):
-        variables_for_exec = {}
-        exec(transformed_code, variables_for_exec)
+        encoders_by_column = self.extract_encoders_by_column(transformed_code)
+        assert len(encoders_by_column.keys()) == 8
 
-        import pandas as pd
-        prepared_data = pd.read_csv("data/benchmark/titanic_featurisation.csv")
+        from sklearn.preprocessing import OneHotEncoder, StandardScaler
+        from sklearn.pipeline import Pipeline
 
-        generated_column_transformer = variables_for_exec['__featurise']()
-        generated_X = generated_column_transformer.fit_transform(prepared_data)
+        for column in ['Sex', 'Embarked']:
+            assert column in encoders_by_column
+            encoder = encoders_by_column[column][0]
+            if isinstance(encoder, Pipeline):
+                _, encoder = encoder.steps[-1]
+                assert isinstance(encoder, OneHotEncoder)
+            else:
+                assert isinstance(encoder, OneHotEncoder)
 
-        manual_column_transformer = self.run_manually_rewritten_code({})
-        manual_X = manual_column_transformer.fit_transform(prepared_data)
-
-        assert generated_X.shape[0] == manual_X.shape[0]
-
-        # Generated code is allowed to add missing value imputation
-        feature_diff = manual_X.shape[1] - generated_X.shape[1]
-        assert feature_diff >= 0
-        assert feature_diff <= 2
+        for column in ['PassengerId', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare']:
+            assert column in encoders_by_column
+            encoder = encoders_by_column[column][0]
+            if isinstance(encoder, Pipeline):
+                _, encoder = encoder.steps[-1]
+                assert isinstance(encoder, StandardScaler)
+            else:
+                assert isinstance(encoder, StandardScaler)
