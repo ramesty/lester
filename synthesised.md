@@ -6,11 +6,11 @@ We provide example rewrites for [nine different rewriting tasks](lester/benchmar
 
 ## Relational data preparation
 
-| Task with messy original code | Source |  Code synthesised by LLM | Correct? | Notes |
-|---|---|---|---|---|
-| [creditcard_dataprep.py](lester/benchmark/creditcard_dataprep.py) | running example in paper | [view](synthesised_code.py#L2)  |:white_check_mark: ||
-| [yichun_dataprep.py](lester/benchmark/yichun_dataprep.py) | [GitHub](https://github.com/YichunAstrid/e-commerce-use-case/tree/main/1116LogisticRegression) | [view](synthesised_code.py#L51) |:x:| Manual editing of two lines <br/>required to handle partitioned inputs |
-| [amazonreviews_dataprep.py](lester/benchmark/amazonreviews_dataprep.py) | [GitHub](https://github.com/aayush210789/Deception-Detection-on-Amazon-reviews-dataset/blob/master/SVM_model.ipynb) | [view](synthesised_code.py#L81) |:white_check_mark:|Dead code generated,<br/> no impact on final output|
+| Benchmark task | Source |  Original code | Synthesised code | Correct? | Notes |
+|---|---|---|---|---|---|
+| [creditcard_dataprep.py](lester/benchmark/creditcard_dataprep.py) | running example in paper | [view original code](lester/benchmark/creditcard_dataprep.py#L7) | [view synthesised code](synthesised_code.py#L2)  |:white_check_mark: ||
+| [yichun_dataprep.py](lester/benchmark/yichun_dataprep.py) | [GitHub](https://github.com/YichunAstrid/e-commerce-use-case/tree/main/1116LogisticRegression) | [view original code](lester/benchmark/yichun_dataprep.py#L8) |[view synthesised code](synthesised_code.py#L51) |:x:| Manual editing of two lines required to handle partitioned inputs (the required manual fix is included as comment) |
+| [amazonreviews_dataprep.py](lester/benchmark/amazonreviews_dataprep.py) | [GitHub](https://github.com/aayush210789/Deception-Detection-on-Amazon-reviews-dataset/blob/master/SVM_model.ipynb) | [view original code](lester/benchmark/amazonreviews_dataprep.py#L8)| [view synthesised code](synthesised_code.py#L81) |:white_check_mark:|Dead code generated,<br/> no impact on final output|
 
 ## Feature encoding
 
