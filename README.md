@@ -15,14 +15,14 @@ Messy Machine Learning Pipelines".
 ### Provenance-based unlearning for all pipeline artifacts
 
  * materialisation of [pipeline artifacts](lester/unlearning/artifacts.py)
- * unlearning of [feature values](lester/unlearning/feature_deletion.py) and [instances](lester/unlearning/instance_deletion.py) based on provenance and the [first-order update](https://www.ndss-symposium.org/wp-content/uploads/2023/02/ndss2023_s87_paper.pdf)
+ * unlearning of [feature values](lester/unlearning/feature_deletion.py) and [instances](lester/unlearning/instance_deletion.py) based on provenance with dataframe and numpy operations, unlearning from model conducted via a recently proposed [first-order update](https://www.ndss-symposium.org/wp-content/uploads/2023/02/ndss2023_s87_paper.pdf)
 
 ## Running example
 
  * [Messy original pipeline](messy_original_pipeline.py) for our running example
- * lester/benchmark/creditcard_dataprep.py synthesised_code.py#L2 lester/rewrite/__init__.py#L17 generate_dataprep_code 
- * lester/benchmark/creditcard_featurisation.py synthesised_code.py#L117 lester/rewrite/__init__.py#L40 generate_featurisation_code
- * lester/benchmark/sklearnlogreg_model.py synthesised_code.py#L117 lester/rewrite/__init__.py#L54 enerate_model_code
+ *  [Synthesised data preparation code](synthesised_code.py#L2) from [messy input code](lester/benchmark/creditcard_dataprep.py)  via the [generate_dataprep_code](lester/rewrite/__init__.py#L17)
+ *  [Synthesised featurisation code](synthesised_code.py#L117) from [messy input code](lester/benchmark/creditcard_featurisation.py) via the [generate_featurisation_code](lester/rewrite/__init__.py#L40)
+ *  [Synthesised learning code](synthesised_code.py#L117) from [messy input code](lester/benchmark/sklearnlogreg_model.py) via the  [generate_model_code](lester/rewrite/__init__.py#L54)
 
 ## Experiments
 
