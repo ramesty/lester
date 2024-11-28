@@ -14,11 +14,11 @@ We provide example rewrites for [nine different rewriting tasks](lester/benchmar
 
 ## Feature encoding
 
-| Task with messy original code  | Source |  Code synthesised by LLM | Correct?| Notes |
-|---|---|---|---|---|
-| [creditcard_featurisation.py](lester/benchmark/creditcard_featurisation.py)  | running example in paper  | [view](synthesised_code.py#L117) |:white_check_mark:||
-| [ldb_featurisation.py](ester/benchmark/ldb_featurisation.py) | [GitHub](https://github.com/LittleDevilBig/Systems-for-AI-Quality/blob/main/main.py) | [view](synthesised_code.py#L164) |:white_check_mark:||
-| [titanic_featurisation.py](lester/benchmark/titanic_featurisation.py) | [GitHub](https://github.com/josephmisiti/kaggle-titanic/blob/master/Titanic%20Classification.ipynb) | [view](synthesised_code.py#L206) |:white_check_mark:||
+| Task with messy original code  | Source |  Original code | Synthesised code | Correct?| Notes |
+|---|---|---|---|---|---|
+| [creditcard_featurisation.py](lester/benchmark/creditcard_featurisation.py)  | running example in paper | [view original code]() | [view synthesised code](synthesised_code.py#L117) |:white_check_mark:||
+| [ldb_featurisation.py](ester/benchmark/ldb_featurisation.py) | [GitHub](https://github.com/LittleDevilBig/Systems-for-AI-Quality/blob/main/main.py) |[view original code](lester/benchmark/ldb_featurisation.py#L8)| [view synthesised code](synthesised_code.py#L164) |:white_check_mark:||
+| [titanic_featurisation.py](lester/benchmark/titanic_featurisation.py) | [GitHub](https://github.com/josephmisiti/kaggle-titanic/blob/master/Titanic%20Classification.ipynb) | [view original code](lester/benchmark/titanic_featurisation.py#L8) |[view synthesised code](synthesised_code.py#L206) |:white_check_mark:||
 
 ## Model and loss function
 
