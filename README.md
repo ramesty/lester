@@ -5,7 +5,9 @@ Messy Machine Learning Pipelines"_. Our prototype runs [declaratively specified 
 
 ## LLM-assisted rewrites of messy pipeline code
 
-At the core of our proposal is the idea to [rewrite messy code](lester/rewrite/__init__.py) for [various pipeline stages](lester/benchmark/__init__.py) based on LLMs with [custom designed prompts](lester/rewrite/prompts.py). We provide example rewrites for [nine different rewriting tasks](lester/benchmark) with their corresponding [synthesise pipeline code](synthesised_code.py).
+At the core of our proposal is the idea to [rewrite messy code](lester/rewrite/__init__.py) for [various pipeline stages](lester/benchmark/__init__.py) based on LLMs with [custom designed prompts](lester/rewrite/prompts.py). We provide example rewrites for [nine different rewriting tasks](lester/benchmark) with their corresponding [synthesised pipeline code](synthesised_code.py).
+
+We provide further details on [preliminary experiments](synthesised.md) in an extra page.
 
 ## Provenance-based unlearning for all pipeline artifacts
 
