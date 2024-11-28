@@ -19,6 +19,11 @@ Messy Machine Learning Pipelines".
 
 ## Running example
 
+ * [Messy original pipeline](messy_original_pipeline.py) for our running example
+ * lester/benchmark/creditcard_dataprep.py synthesised_code.py#L2
+ * lester/benchmark/creditcard_featurisation.py synthesised_code.py#L117
+ * lester/benchmark/sklearnlogreg_model.py synthesised_code.py#L117
+
 ## Experiments
 
 * [evaluation of the synthesised code](experiment__rewrite.py) for the nine example tasks
