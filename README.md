@@ -23,5 +23,5 @@ We provide a working implementation of the [messy example pipeline](messy_origin
 
 ## Experiments
 
-We provide the code for the [evaluation of the synthesised code](experiment__rewrite.py) for the nine example tasks, and for measuring the runtime of [retraining from scratch](experiment__retraining_time.py) versus the runtime for [targeted unlearning](experiment__unlearning.py). Note that the pipeline must be [executed first](run_rewritten_pipeline.py) for the latter experimented, and a large input file must be unpacked first.
+We provide the code for the [evaluation of the synthesised code](experiment__rewrite.py) for the nine example tasks, and for measuring the runtime of [retraining from scratch](experiment__retraining_time.py) versus the runtime for [targeted unlearning](experiment__unlearning.py). Note that the pipeline must be [executed first](run_rewritten_pipeline.py) for the latter experimented, and a [large input file](data/synthetic_mails_100000.csv.zip) must be unpacked first.
   
