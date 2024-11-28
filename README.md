@@ -5,7 +5,9 @@ Messy Machine Learning Pipelines"_. Our prototype runs [declaratively specified 
 
 ## LLM-assisted rewrites of messy pipeline code
 
-At the core of our proposal is the idea to [rewrite messy code](lester/rewrite/__init__.py) for [various pipeline stages](lester/benchmark/__init__.py) based on LLMs with [custom designed prompts](lester/rewrite/prompts.py). We provide example rewrites for [nine different rewriting tasks](lester/benchmark) with their corresponding [synthesise pipeline code](synthesised_code.py).
+At the core of our proposal is the idea to [rewrite messy code](lester/rewrite/__init__.py) for [various pipeline stages](lester/benchmark/__init__.py) based on LLMs with [custom designed prompts](lester/rewrite/prompts.py). We provide example rewrites for [nine different rewriting tasks](lester/benchmark) with their corresponding [synthesised pipeline code](synthesised_code.py).
+
+We provide further details on [preliminary experiments](synthesised.md) in an extra page.
 
 ## Provenance-based unlearning for all pipeline artifacts
 
@@ -23,5 +25,5 @@ We provide a working implementation of the [messy example pipeline](messy_origin
 
 ## Experiments
 
-We provide the code for the [evaluation of the synthesised code](experiment__rewrite.py) for the nine example tasks, and for measuring the runtime of [retraining from scratch](experiment__retraining_time.py) versus the runtime for [targeted unlearning](experiment__unlearning.py). Note that the pipeline must be [executed first](run_rewritten_pipeline.py) for the latter experimented, and a large input file must be unpacked first.
+We provide the code for the [evaluation of the synthesis](experiment__rewrite.py) for the nine example tasks, and for measuring the runtime of [retraining from scratch](experiment__retraining_time.py) versus the runtime for [targeted unlearning](experiment__unlearning.py). Note that the pipeline must be [executed first](run_rewritten_pipeline.py) for the latter experimented, and a [large input file](data/synthetic_mails_100000.csv.zip) must be unpacked first.
   
