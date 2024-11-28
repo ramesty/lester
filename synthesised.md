@@ -1,3 +1,8 @@
+# Potential of Code Synthesis
+
+At the core of our proposal is the idea to [rewrite messy code](lester/rewrite/__init__.py) for [various pipeline stages](lester/benchmark/__init__.py) based on LLMs with [custom designed prompts](lester/rewrite/prompts.py). 
+
+We provide example rewrites for [nine different rewriting tasks](lester/benchmark) with their corresponding [synthesised pipeline code](synthesised_code.py). These examples have been rewritten with the help of OpenAI's [gpt-4o](https://openai.com/index/hello-gpt-4o/) model and the [generate_dataprep_code](lester/rewrite/__init__.py#L17), [generate_featurisation_code](lester/rewrite/__init__.py#L40) and [generate_model_code](lester/rewrite/__init__.py#L54) methods in our prototype. The corresponding [prompts](lester/rewrite/prompts.py) are available as well.
 
 ## Relational data preparation
 
@@ -5,7 +10,7 @@
 |---|---|---|---|
 | [creditcard_dataprep.py](lester/benchmark/creditcard_dataprep.py)  | [view](synthesised_code.py#L2)  | running example in paper ||
 | [yichun_dataprep.py](lester/benchmark/yichun_dataprep.py) | [view](synthesised_code.py#L51) | [GitHub](https://github.com/YichunAstrid/e-commerce-use-case/tree/main/1116LogisticRegression) | Manual editing of two lines required<br/> to handle partitioned inputs |
-| [amazonreviews_dataprep.py](lester/benchmark/amazonreviews_dataprep.py) | [view](synthesised_code.py#L81) | [GitHub](https://github.com/aayush210789/Deception-Detection-on-Amazon-reviews-dataset/blob/master/SVM_model.ipynb) ||
+| [amazonreviews_dataprep.py](lester/benchmark/amazonreviews_dataprep.py) | [view](synthesised_code.py#L81) | [GitHub](https://github.com/aayush210789/Deception-Detection-on-Amazon-reviews-dataset/blob/master/SVM_model.ipynb) |Dead code generated, no impact final output|
 
 ## Feature encoding
 
