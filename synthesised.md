@@ -15,13 +15,13 @@
 | [ldb_featurisation.py](ester/benchmark/ldb_featurisation.py) | [view](synthesised_code.py#L164) | [GitHub](https://github.com/LittleDevilBig/Systems-for-AI-Quality/blob/main/main.py) | |
 | [titanic_featurisation.py](lester/benchmark/titanic_featurisation.py) | [view](synthesised_code.py#L206) | [GitHub](https://github.com/josephmisiti/kaggle-titanic/blob/master/Titanic%20Classification.ipynb) ||
 
-## Model and loss
+## Model and loss function
 
 | Task with messy original code |  Code synthesised by LLM | Source | Notes |
 |---|---|---|---|
 | [sklearnlogreg_model.py](lester/benchmark/sklearnlogreg_model.py)  | [view](synthesised_code.py#L238)  | running example in paper ||
-| [sklearnsvm_model.py](lester/benchmark/sklearnsvm_model.py)  | [view](synthesised_code.py#L257)  | sklearn ||
-| [sklearnmlp_model.py](lester/benchmark/sklearnmlp_model.py)  | [view](synthesised_code.py#L276)  | sklearn ||
+| [sklearnsvm_model.py](lester/benchmark/sklearnsvm_model.py)  | [view](synthesised_code.py#L257)  | [sklearn](https://scikit-learn.org/dev/modules/generated/sklearn.svm.SVC.html) ||
+| [sklearnmlp_model.py](lester/benchmark/sklearnmlp_model.py)  | [view](synthesised_code.py#L276)  | [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html) ||
 
 
 
