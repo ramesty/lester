@@ -22,11 +22,11 @@ We provide example rewrites for [nine different rewriting tasks](lester/benchmar
 
 ## Model and loss function
 
-| Benchmark task | Source | Original code | Synthesised code | Correct?| Notes |
-|---|---|---|---|---|---|
-| [sklearnlogreg_model.py](lester/benchmark/sklearnlogreg_model.py) | running example in paper | [view original code](lester/benchmark/sklearnlogreg_model.py#L8) |[view synthesised code](synthesised_code.py#L238) |:white_check_mark:||
-| [sklearnsvm_model.py](lester/benchmark/sklearnsvm_model.py)  | [sklearn](https://scikit-learn.org/dev/modules/generated/sklearn.svm.SVC.html) | [view original code](lester/benchmark/sklearnsvm_model.py#L6) |[view synthesised code](synthesised_code.py#L257) |:white_check_mark:||
-| [sklearnmlp_model.py](lester/benchmark/sklearnmlp_model.py)  | [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html)| [view original code](lester/benchmark/sklearnmlp_model.py#L6) | [view synthesised code](synthesised_code.py#L276)  |:white_check_mark:||
+| Benchmark task | Source | Original code | Synthesised code                                  | Correct?| Notes |
+|---|---|---|---------------------------------------------------|---|---|
+| [sklearnlogreg_model.py](lester/benchmark/sklearnlogreg_model.py) | running example in paper | [view original code](lester/benchmark/sklearnlogreg_model.py#L8) | [view synthesised code](synthesised_code.py#L238) |:white_check_mark:||
+| [sklearnsvm_model.py](lester/benchmark/sklearnsvm_model.py)  | [sklearn](https://scikit-learn.org/dev/modules/generated/sklearn.svm.SVC.html) | [view original code](lester/benchmark/sklearnsvm_model.py#L6) | [view synthesised code](synthesised_code.py#L258) |:white_check_mark:||
+| [sklearnmlp_model.py](lester/benchmark/sklearnmlp_model.py)  | [sklearn](https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html)| [view original code](lester/benchmark/sklearnmlp_model.py#L6) | [view synthesised code](synthesised_code.py#L289) |:white_check_mark:||
 
 
 

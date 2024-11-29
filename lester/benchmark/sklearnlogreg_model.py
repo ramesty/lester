@@ -11,21 +11,18 @@ from sklearn.linear_model import SGDClassifier
 model = SGDClassifier(loss="log_loss", penalty=None)        
         """
 
-    def run_manually_rewritten_code(self, params):
-        import torch.nn as nn
-
-        class LogisticRegressionModel(nn.Module):
-            def __init__(self, input_dim):
-                super(LogisticRegressionModel, self).__init__()
-                self.linear = nn.Linear(input_dim, 1)
-
-            def forward(self, x):
-                return torch.sigmoid(self.linear(x))
-
-        model = LogisticRegressionModel(params['num_features'])
-        loss = torch.nn.BCELoss
-
-        return model, loss
-
     def evaluate_transformed_code(self, transformed_code):
-        pass
+
+        model_func = self.extract_model_func(transformed_code)
+
+        num_features = 100
+        model, loss = model_func(num_features)
+
+        import torch
+        from torch.nn import BCELoss
+        assert isinstance(loss, BCELoss)
+
+        parameters = list(model.parameters())
+        assert len(parameters) == 2
+        assert parameters[0].shape == (1, num_features)
+        assert parameters[1].shape == torch.Size([1])

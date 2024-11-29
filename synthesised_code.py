@@ -239,6 +239,7 @@ SYNTHESISED_SKLEARNLOGREG_CODE = """
 def __model(num_features):
     import torch
     import torch.nn as nn
+    import torch.optim as optim
 
     class LogisticRegressionModel(nn.Module):
         def __init__(self, num_features):
@@ -258,7 +259,7 @@ SYNTHESISED_SKLEARNSVM_CODE = """
 def __model(num_features):
     import torch
     import torch.nn as nn
-
+    
     class LinearSVC(nn.Module):
         def __init__(self, num_features):
             super(LinearSVC, self).__init__()
@@ -266,10 +267,22 @@ def __model(num_features):
 
         def forward(self, x):
             return self.linear(x)
-
+    
+    # Initialize the model
     model = LinearSVC(num_features)
-    loss = nn.HingeEmbeddingLoss()
+    
+    # Define the hinge loss function
+    class HingeLoss(nn.Module):
+        def __init__(self):
+            super(HingeLoss, self).__init__()
 
+        def forward(self, outputs, targets):
+            outputs = outputs.view(-1)
+            targets = targets.float()
+            return torch.mean(torch.clamp(1 - outputs * targets, min=0))
+    
+    loss = HingeLoss()
+    
     return model, loss
 """
 
@@ -277,23 +290,22 @@ SYNTHESISED_SKLEARNMLP_CODE = """
 def __model(num_features):
     import torch
     import torch.nn as nn
-    
-    class CustomModel(nn.Module):
+    import torch.nn.functional as F
+
+    class MLPClassifier(nn.Module):
         def __init__(self, input_size):
-            super(CustomModel, self).__init__()
+            super(MLPClassifier, self).__init__()
             self.hidden1 = nn.Linear(input_size, 64)
             self.hidden2 = nn.Linear(64, 16)
             self.output = nn.Linear(16, 1)
-            self.relu = nn.ReLU()
-
+        
         def forward(self, x):
-            x = self.relu(self.hidden1(x))
-            x = self.relu(self.hidden2(x))
-            x = self.output(x)
+            x = F.relu(self.hidden1(x))
+            x = F.relu(self.hidden2(x))
+            x = torch.sigmoid(self.output(x))
             return x
 
-    model = CustomModel(num_features)
-    loss = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss suitable for binary classification
-
-    return model, loss
+    model = MLPClassifier(num_features)
+    loss = nn.BCELoss()
+    return model, loss   
 """

@@ -78,6 +78,14 @@ class ModelCodeTransformationTask(ABC):
     def original_code(self):
         pass
 
+    @staticmethod
+    def extract_model_func(transformed_code):
+        variables_for_exec = {}
+        exec(transformed_code, variables_for_exec)
+        model_func = variables_for_exec['__model']
+
+        return model_func
+
     @abstractmethod
     def evaluate_transformed_code(self, transformed_code):
         pass
