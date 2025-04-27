@@ -18,12 +18,12 @@ Our prototype materialises the produced [pipeline artifacts](lester/unlearning/a
 We provide a working implementation of the [messy example pipeline](messy_original_pipeline.py) from the running example in the submission. This pipeline is rewritten with the help of OpenAI's [gpt-4o](https://openai.com/index/hello-gpt-4o/) model as follows:
 
  1. The [messy data preparation code](lester/benchmark/creditcard_dataprep.py) is [synthesised to dataframe operations](synthesised_code.py#L2) with provenance tracking via the [generate_dataprep_code](lester/rewrite/__init__.py#L17) function.
- 1. The  [messy featurisation code](lester/benchmark/creditcard_featurisation.py) is [synthesised to estimator/transformer oeprations](synthesised_code.py#L117) via the [generate_featurisation_code](lester/rewrite/__init__.py#L40) function.
+ 1. The  [messy featurisation code](lester/benchmark/creditcard_featurisation.py) is [synthesised to estimator/transformer operations](synthesised_code.py#L117) via the [generate_featurisation_code](lester/rewrite/__init__.py#L40) function.
  1. The [custom logistic regression model](lester/benchmark/sklearnlogreg_model.py) is [synthesised to tensor operations in PyTorch](synthesised_code.py#L117) via the [generate_model_code](lester/rewrite/__init__.py#L54) function.
 
 ![example code transformation](running-example-rewritten.jpg)
 
 ## Experiments
 
-We provide the code for the [evaluation of the synthesis](experiment__rewrite.py) for the nine example tasks, and for measuring the runtime of [retraining from scratch](experiment__retraining_time.py) versus the runtime for [targeted unlearning](experiment__unlearning.py). Note that the pipeline must be [executed first](run_rewritten_pipeline.py) for the latter experimented, and a [large input file](data/synthetic_mails_100000.csv.zip) must be unpacked first.
+We provide the code for the [evaluation of the synthesis](experiment__rewrite.py) for the nine example tasks, and for measuring the runtime of [retraining from scratch](experiment__retraining_time.py) versus the runtime for [targeted unlearning](experiment__unlearning.py). Note that the pipeline must be [executed first](run_rewritten_pipeline.py) for the latter experiment, and a [large input file](data/synthetic_mails_100000.csv.zip) must be unpacked first.
   
