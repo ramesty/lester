@@ -1,0 +1,131 @@
+
+ ----------------------------------------------- 
+
+DATAPREP_SYNTHESIZED:
+
+
+import os
+import warnings
+import lester as ld
+from transformers import pipeline
+
+def __dataprep(customers_file, mails_file):
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
+    target_countries = ['UK', 'DE', 'FR']
+    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+    
+    def sanitize(text):
+        return text.lower()
+
+    # Read customers data
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
+    
+    # Filter customers based on target countries
+    customers_filtered = customers_df.filter("country in @target_countries")
+    
+    # Create is_premium column
+    def compute_is_premium(level):
+        return level == 'premium'
+    
+    customers_filtered = customers_filtered.project('is_premium', ['level'], compute_is_premium)
+    
+    # Select relevant customer data
+    customer_data = customers_filtered[['customer_email', 'bank', 'country', 'is_premium']]
+    
+    # Read mails data
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
+    
+    # Create mail_year column
+    def extract_year(raw_date):
+        return int(raw_date.split("-")[0])
+    
+    mails_df = mails_df.project('mail_year', ['raw_date'], extract_year)
+    
+    # Filter mails from 2022 onwards
+    mails_filtered = mails_df.filter("mail_year >= 2022")
+    
+    # Join filtered mails with customer data
+    joined_df = ld.join(mails_filtered, customer_data, left_on='email', right_on='customer_email')
+    
+    # Create title column
+    joined_df = joined_df.project('title', ['mail_subject'], sanitize)
+    
+    # Create text column
+    joined_df = joined_df.project('text', ['mail_text'], sanitize)
+    
+    # Create sentiment column
+    def compute_sentiment(mail_text):
+        return sentiment_predictor(mail_text)[0]['label'].lower()
+    
+    joined_df = joined_df.project('sentiment', ['mail_text'], compute_sentiment)
+    
+    # Select final columns
+    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+    
+    return result_df
+
+ ----------------------------------------------- 
+
+FEATURE_SYNTHESIZED:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+    from sklearn.pipeline import Pipeline, FeatureUnion
+    from sklearn.compose import ColumnTransformer
+    from sentence_transformers import SentenceTransformer
+
+    # Initialize the sentence embedder
+    sentence_embedder = SentenceTransformer("all-mpnet-base-v2")
+
+    # Define transformers
+    def embed_sentences(titles):
+        return sentence_embedder.encode(titles)
+
+    sentence_embedding_transformer = FunctionTransformer(embed_sentences, validate=False)
+
+    def compute_title_length(titles):
+        return np.array([len(title) for title in titles]).reshape(-1, 1)
+
+    title_length_transformer = Pipeline([
+        ('length', FunctionTransformer(compute_title_length, validate=False)),
+        ('scaler', StandardScaler())
+    ])
+
+    country_indices = {'DE': 0, 'FR': 1, 'UK': 2}
+    country_onehot_transformer = OneHotEncoder(categories=[list(country_indices.keys())], sparse_output=False)
+
+    # ColumnTransformer
+    column_transformer = ColumnTransformer(transformers=[
+        ('subject_embeddings', sentence_embedding_transformer, 'title'),
+        ('text_embeddings', sentence_embedding_transformer, 'text'),
+        ('title_length', title_length_transformer, 'title'),
+        ('country_onehot', country_onehot_transformer, ['country'])
+    ])
+
+    return column_transformer
+
+ ----------------------------------------------- 
+
+MODEL_SYNTHESIZED:
+
+
+def __model(num_features):
+    import torch
+    import torch.nn as nn
+    
+    class LogisticRegressionModel(nn.Module):
+        def __init__(self, num_features):
+            super(LogisticRegressionModel, self).__init__()
+            self.linear = nn.Linear(num_features, 1)
+        
+        def forward(self, x):
+            return torch.sigmoid(self.linear(x))
+    
+    model = LogisticRegressionModel(num_features)
+    loss = nn.BCELoss()
+    
+    return model, loss

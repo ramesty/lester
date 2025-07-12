@@ -1,0 +1,4 @@
+{
+  "customers_file": "../data/synthetic_customers_10.csv",
+  "mails_file": "../data/synthetic_mails_10.csv"
+}
