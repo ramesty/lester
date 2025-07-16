@@ -40,6 +40,7 @@ if __name__ == "__main__":
     # original_stages = assign_code_to_stage(stages)
 
     original_stages = read_original_code()
+    # synthesized_stages = read_synthesized_code()
 
     if False:
         synth_dp = generate_synthesized_dataprep(original_stages["DATAPREP_ORIGINAL"], model)
@@ -64,6 +65,7 @@ if __name__ == "__main__":
 
     if True:
         synth_feat = generate_synthesized_feature(original_stages["FEATURE_ORIGINAL"], model)
+        # synth_feat = synthesized_stages["FEATURE_SYNTHESIZED"]
         __featurise = instantiate("__featurise", synth_feat)
 
         attempts = 0
@@ -82,7 +84,6 @@ if __name__ == "__main__":
                     tb = traceback.format_exc()
                     print("Traceback:")
                     print(tb)
-                    # print(f"Featurisation has failed: {tb}")
                     synth_feat = handle_error(model, synth_feat, error, "FEATURE_SYNTHESIZED")
                     __featurise = instantiate("__featurise", synth_feat)
             attempts += 1

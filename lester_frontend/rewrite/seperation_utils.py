@@ -74,10 +74,6 @@ def write_synthesized_code_to_file(synthesized_stages):
             out_txt.write(f"\n ----------------------------------------------- \n\n{key}:\n\n")
             out_txt.write(value)
 
-# work on this function
-# the idea is to be able to save, individual stages at a time
-# would be useful to append, so you can see how the code changes over time
-
 def append_iteration(stage, iteration_code):
     with open(f"./lester_frontend/pipeline_stages/logs/synthesized_iterations/{stage}.txt", "a") as f:
         f.write(f"\n ----------------------------------------------- \n\n{stage}:\n\n")
@@ -117,14 +113,13 @@ def handle_error(model, ERROR_SYNTHESISED_CODE, error,  SYNTHESIZED_TITLE):
     return synthesized_stages[SYNTHESIZED_TITLE]
 
 def generate_synthesized_dataprep(dataprep_org_code, model):
+
     data_task = LLMDataprepTask(dataprep_org_code, dataprep_input_arg_names, dataprep_input_schemas, dataprep_output_columns)
     dataprep_code = generate_dataprep_code(data_task, model)
     append_iteration("dataprep", dataprep_code)
     return dataprep_code
 
 def generate_synthesized_feature(feature_org_code, model):
-
-    print("Generating synthesized feature code...")
 
     feature_task = LLMFeaturisationTask(feature_org_code, featurisation_input_schema)
     featurisation_code = generate_featurisation_code(feature_task, model)
@@ -137,8 +132,6 @@ def generate_synthesized_model(model_org_code, model):
     return model_code
 
 def generate_synthesized_pipeline(dataprep_org_code, feature_org_code, model_org_code, model):
-    
-    print("Generating synthesized pipeline...")
     
     dataprep_code = generate_synthesized_dataprep(dataprep_org_code, model)
     featurisation_code = generate_synthesized_feature(feature_org_code, model)

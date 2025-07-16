@@ -1,9 +1,59 @@
 import pandas as pd
 import numpy as np
-import re
+import traceback
 import torch.nn as nn
 
-def test_dataprep(_lester_dataprep, source_paths):
+from lester_frontend.rewrite.seperation_utils import read_synthesized_code
+from lester.classification import instantiate
+from lester_frontend.rewrite.seperation_utils import handle_error, read_synthesized_code, extract_label, source_paths
+
+async def run_dataprep_tests():
+    print("Testing Data Preperation.")
+    synth_dp = read_synthesized_code()["DATAPREP_SYNTHESIZED"]
+    __dataprep = instantiate("__dataprep", synth_dp)
+
+    print("Testing if the dataprep phase works")
+    try:
+        await test_dataprep(__dataprep, source_paths)
+        print("Datapreperation phase works!")
+
+    except Exception as error:
+        return f"The data preperation phase has failed with the following error {error}"
+
+    return "The Data preperation phase has passed the validation tests!"
+
+async def run_featurisation_tests():
+        
+    synth_feat = read_synthesized_code()["FEATURE_SYNTHESIZED"]
+    __featurise = instantiate("__featurise", synth_feat)
+
+    print("Testing if the featurisation phase works")
+    try:
+        await test_feature_transformer(__featurise, extract_label)
+        print("Featurisation Phase works!")
+
+    except Exception as error:
+        return f"The featurisation phase has failed with the following error {error}"
+    
+    return "The featurisation phase has passed the validation tests!"
+
+async def run_model_tests():
+
+    synth_model = read_synthesized_code()["MODEL_SYNTHESIZED"]
+    __model = instantiate("__model", synth_model)
+    
+    print("Testing if the model training phase works")
+    try:
+        await test_model(__model)
+        print("Model Training Phase works!")
+
+    except Exception as error:
+        return f"The featurisation phase has failed with the following error {error}"
+    
+    return "The model training phase has passed the validation tests!"
+    
+
+async def test_dataprep(_lester_dataprep, source_paths):
 
     tracked_df = _lester_dataprep(**source_paths)
     expected_output = pd.read_csv('./lester_frontend/test_pipeline/expected_output/data_prep_output.csv')
@@ -34,7 +84,8 @@ def test_dataprep(_lester_dataprep, source_paths):
     #     for v in value_list:
     #         assert re.match(r"0x[0-9a-f]+\.\w+", v)
 
-def test_feature_transformer(encode_features, extract_label):
+async def test_feature_transformer(encode_features, extract_label):
+
 
     print("test_feature_transformer running...")
     train_df = pd.read_csv('./lester_frontend/test_pipeline/inputs/feature_train_input.csv')
@@ -69,7 +120,7 @@ def test_feature_transformer(encode_features, extract_label):
     # pd.testing.assert_frame_equal(X_test, expected_x_test)
     # pd.testing.assert_frame_equal(y_test, expected_y_test)
 
-def test_model(__model, ):
+async def test_model(__model, ):
 
     expected_x_train = pd.read_csv('./lester_frontend/test_pipeline/expected_output/x_train.csv', header=None)
     num_features = expected_x_train.shape[1]

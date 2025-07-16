@@ -12,7 +12,7 @@ function App() {
   const [code, setCode] = useState("def foo():\n    return 42\n\nprint(foo())");
   const [color, setColor] = useState("green");
 
-    const labels = [
+  const labels = [
     "Dataprep input arg names",
     "Dataprep input schemas",
     "Dataprep output columns",
@@ -39,13 +39,29 @@ function App() {
   const [fullCode, setFullCode] = useState("def foo():\n    return 42\n\nprint(foo())");
   const [lineColourMap, setLineColourMap] = useState([]);
 
+  // Variable used for testing
+  const [testSelection, setTestSelection] = useState("no_selection")
+  const testLabels = [
+    "no_selection",
+    "test_data_preperation",
+    "test_featurisation",
+    "test_model"
+  ]
+
+  // Variables used for regeneration
+  const [regenerateSelection, setRegenerateSelection] = useState("no_selection") 
+  const regenerateLabels = [
+    "no_selection",
+    "regenerate_data_preperation",
+    "regenerate_featurisation",
+    "regenerate_model"
+  ]
+
   // When a response is received, we update the full code (code shown on response window)
   // as well as the colour map. Changing the colour map calls a seperate useffect, which decorates
   // the respons window.
 
   useEffect(() => {
-
-    console.log("use effect")
 
     const lines = response.map(item => item.line);
     const colours = response.map(item => item.colour);
@@ -83,8 +99,6 @@ function App() {
 
   const decorateResponseEditor = (editor, monaco, lineColours) => {
 
-    console.log(lineColours)
-
     editor.deltaDecorations(responseDecorations, []);
     setResponseDecorations([]);
 
@@ -97,7 +111,6 @@ function App() {
     }));
 
     const decorationIds = editor.deltaDecorations([], newDecorations);
-    console.log("Decoration IDs:", decorationIds);
     setResponseDecorations(decorationIds);
 
 
@@ -177,6 +190,41 @@ function App() {
     setCode(updatedCode);
   };
 
+  const regenerateCodeSubmit = async () => {
+
+    if (regenerateSelection==="no_selection") {alert("No regeneration option selected!"); return}
+    setLoading(true)
+
+    try{
+      const result = await callBackend({
+        url : "http://127.0.0.1:8000/regenerate_stage/" + regenerateSelection
+      })
+      setResponse(result)
+    } catch (error) {
+      console.log("Backend call failed: ", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const testCodeSubmit = async () => {
+
+    if (testSelection === "no_selection") {alert("No test selected!"); return}
+    setLoading(true);
+
+    try {
+      const result = await callBackend({
+        url: "http://127.0.0.1:8000/test_stage/" + testSelection
+      });
+      console.log(result)
+
+    } catch (error) {
+      console.error("Backend call failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const submitCode = async () => {
     
     if (loading) return;
@@ -226,7 +274,6 @@ function App() {
     }
   };
 
-
   return (
   <div className="h-screen w-screen p-4">
     <div className="grid grid-cols-6 gap-4 h-full">
@@ -261,9 +308,29 @@ function App() {
         </div>
 
         <div className="flex flex-col gap-2">
+          <label>Test Synthesized Stage:</label>
+          <select value={testSelection} onChange={(e) => setTestSelection(e.target.value)} className="p-2 border rounded">
+            {testLabels.map((value, index) => (
+              <option value={value} key={index}>{value}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label>Regenerate Synthesized Stage:</label>
+          <select value={regenerateSelection} onChange={(e) => setRegenerateSelection(e.target.value)} className="p-2 border rounded">
+            {regenerateLabels.map((value, index) => (
+              <option value={value} key={index}>{value}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-2">
           <button onClick={handleHighlight} className="p-2 bg-blue-500 text-white rounded">Highlight Selection</button>
           <button onClick={clearHighlights} className="p-2 bg-gray-500 text-white rounded">Clear Highlights</button>
           <button onClick={submitCode} className="p-2 bg-green-600 text-white rounded">Submit Code</button>
+          <button onClick={testCodeSubmit} className="p-2 bg-green-600 text-white rounded">Test Code</button>
+          <button onClick={regenerateCodeSubmit} className="p-2 bg-green-600 text-white rounded">Regenerate Code</button>
         </div>
 
         {submitError && (
@@ -273,16 +340,14 @@ function App() {
         )}
       </div>
 
-      {/* Main Content */}
       <div className="col-span-5 h-full grid grid-cols-2 gap-4">
-        {/* Input Editor */}
         <div className={`flex flex-col h-full p-2 border rounded ${validCode ? "border-gray-300" : "border-red-500"}`}>
           <h2>Input Code</h2>
           <div className="flex-grow">
             <Editor
               defaultLanguage="python"
               defaultValue={code}
-              onChange={handleCodeChange}
+              onChange= {handleCodeChange}
               onMount={handleEditorDidMount}
               theme="vs-dark"
               options={{ minimap: { enabled: false } }}
@@ -291,7 +356,6 @@ function App() {
           </div>
         </div>
 
-        {/* Output Editor */}
         <div className="flex flex-col h-full p-2 border rounded border-gray-300">
 
           <h2>Synthesized Response</h2>
