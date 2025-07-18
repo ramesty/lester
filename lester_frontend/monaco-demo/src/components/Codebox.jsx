@@ -16,7 +16,7 @@ function Codebox({validCode, title, code, handleCodeChange, isReadOnly, editorRe
           <div className="flex-grow">
             <Editor
               defaultLanguage="python"
-              defaultValue={code}
+              value={code}
               onChange= {handleCodeChange}
               onMount={handleEditorDidMount}
               theme="vs-dark"

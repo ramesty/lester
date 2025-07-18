@@ -3,7 +3,6 @@ import { callBackend } from '../utils/api';
 import Sidebar from "../components/Sidebar";
 import Codebox from "../components/Codebox";
 import Loading from "../components/Loading";
-import SplitPane from "react-split-pane";
 
 import "../App.css";
 
@@ -41,7 +40,9 @@ function Home() {
 
   // Variables for testing and regeneration
   const [testSelection, setTestSelection] = useState("no_selection")
+  const [testResponse, setTestResponse] = useState("")
   const [regenerateSelection, setRegenerateSelection] = useState("no_selection") 
+  const [regenerateResponse, setRegenerateResponse] = useState([])
 
   useEffect(() => {
 
@@ -53,6 +54,17 @@ function Home() {
 
 
   }, [response]);
+
+  useEffect(() => {
+
+    const lines = regenerateResponse.map(item => item.line);
+    const colours = regenerateResponse.map(item => item.colour);
+
+    setResponseCode(lines.join("\n"));
+    setLineColourMap(colours)
+
+
+  }, [regenerateResponse]);
 
   useEffect(() => {
 
@@ -78,12 +90,16 @@ function Home() {
     const decorationIds = editor.deltaDecorations([], newDecorations);
     setResponseDecorations(decorationIds);
 
-
   };
 
   const handleCodeChange = (updatedCode) => {
     console.log("Changing input code...")
-    setCode(updatedCode);
+    setInputCode(updatedCode);
+  };
+
+  const handleResponseCodeChange = (updatedCode) => {
+    console.log("Changing Response code...")
+    setResponseCode(updatedCode);
   };
 
   const handleHighlight = () => {
@@ -154,7 +170,7 @@ function Home() {
       const result = await callBackend({
         url : "http://127.0.0.1:8000/regenerate_stage/" + regenerateSelection
       })
-      setResponse(result)
+      setRegenerateResponse(result)
     } catch (error) {
       console.log("Backend call failed: ", error)
     } finally {
@@ -172,6 +188,7 @@ function Home() {
         url: "http://127.0.0.1:8000/test_stage/" + testSelection
       });
       console.log(result)
+      setTestResponse(result)
 
     } catch (error) {
       console.error("Backend call failed:", error);
@@ -250,18 +267,16 @@ function Home() {
         submitErrorMsg={submitErrorMsg}
         />
 
+      <div className="grid grid-flow-col grid-rows-7 col-span-5">
 
-
-      <div className="col-span-5">
-
-        <div className="grid grid-cols-2 h-1/2 gap-4">
-            <Codebox validCode={validCode} title={"Original Code"} code={inputCode} handleCodeChange={handleCodeChange} editorRef={editorRef} monacoRef={monacoRef} isReadOnly={true} />
-            <Codebox validCode={validCode} title={"Synthesized Code"} code={responseCode} handleCodeChange={handleCodeChange} editorRef={responseEditorRef} monacoRef={responseMonacoRef} isReadOnly={true}/>
+        <div className="grid grid-cols-2 row-span-6 gap-4">
+            <Codebox validCode={validCode} title={"Original Code"} code={inputCode} handleCodeChange={handleCodeChange} editorRef={editorRef} monacoRef={monacoRef} isReadOnly={false} />
+            <Codebox validCode={validCode} title={"Synthesized Code"} code={responseCode} handleCodeChange={handleResponseCodeChange} editorRef={responseEditorRef} monacoRef={responseMonacoRef} isReadOnly={true}/>
 
         </div >
           
-        <div className="grid grid-cols-1 h-1/2 gap-4">
-            <div><h1>hellow</h1></div>
+        <div className="grid grid-cols-1 row-span-1 mt-4 border rounded border-gray-300">
+            <div><p className="text-center">{testResponse}</p></div>
         </div>
           
       </div>

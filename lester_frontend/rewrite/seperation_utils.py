@@ -4,7 +4,7 @@ import os
 
 from lester.rewrite import generate_dataprep_code, generate_featurisation_code, generate_model_code, regenerate_code
 from lester_frontend.sample_inputs.sample_code import messy_original_pipeline, dataprep_input_arg_names, dataprep_input_schemas, dataprep_output_columns, featurisation_input_schema
-from lester_frontend.frontend.LLM_task_classes import LLMDataprepTask, LLMFeaturisationTask, LLMModelCodeTransformationTask
+from lester_frontend.LLM_task_classes import LLMDataprepTask, LLMFeaturisationTask, LLMModelCodeTransformationTask
 
 source_paths = {
     'customers_file': './data/synthetic_customers_10.csv',
