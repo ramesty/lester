@@ -15,3 +15,4 @@ venv/
 *.swp
 *.py[co]
 __pycache__
+.env

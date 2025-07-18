@@ -1,0 +1,35 @@
+{
+  "code_lines": [
+    "def foo():",
+    "    return 42",
+    "",
+    "print(foo())"
+  ],
+  "highlight_map": {
+    "1": "data_preparation",
+    "2": "data_featurisation",
+    "4": "model_training"
+  },
+  "manual_inputs": [
+    "[]",
+    "[]",
+    "[]",
+    "[]"
+  ],
+  "pipeline_stage_lines": {
+    "data_preparation": [
+      1
+    ],
+    "data_featurisation": [
+      2
+    ],
+    "model_training": [
+      4
+    ]
+  },
+  "code_stages": {
+    "data_preparation": "def foo():",
+    "data_featurisation": "    return 42",
+    "model_training": "print(foo())"
+  }
+}

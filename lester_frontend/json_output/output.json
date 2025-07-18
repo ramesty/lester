@@ -1,0 +1,446 @@
+[
+  {
+    "line": 1,
+    "code": "import os"
+  },
+  {
+    "line": 2,
+    "code": "from transformers import pipeline"
+  },
+  {
+    "line": 3,
+    "code": "os.environ[\"TOKENIZERS_PARALLELISM\"] = \"False\""
+  },
+  {
+    "line": 4,
+    "code": "import warnings"
+  },
+  {
+    "line": 5,
+    "code": ""
+  },
+  {
+    "line": 6,
+    "code": "warnings.simplefilter(action='ignore', category=FutureWarning)"
+  },
+  {
+    "line": 7,
+    "code": ""
+  },
+  {
+    "line": 8,
+    "code": ""
+  },
+  {
+    "line": 9,
+    "code": "target_countries = ['UK', 'DE', 'FR']"
+  },
+  {
+    "line": 10,
+    "code": "customer_data = {}"
+  },
+  {
+    "line": 11,
+    "code": ""
+  },
+  {
+    "line": 12,
+    "code": "sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')"
+  },
+  {
+    "line": 13,
+    "code": ""
+  },
+  {
+    "line": 14,
+    "code": "def matches_usecase(text):"
+  },
+  {
+    "line": 15,
+    "code": "    return \"complaint\" in text or \"bank account\" in text"
+  },
+  {
+    "line": 16,
+    "code": ""
+  },
+  {
+    "line": 17,
+    "code": "def sanitize(text):"
+  },
+  {
+    "line": 18,
+    "code": "    return text.lower()"
+  },
+  {
+    "line": 19,
+    "code": ""
+  },
+  {
+    "line": 20,
+    "code": "with open(\".scratchspace/__intermediate.csv\", 'w') as output_file:"
+  },
+  {
+    "line": 21,
+    "code": "    with open(\"data/customers.csv\") as file:"
+  },
+  {
+    "line": 22,
+    "code": "        for line in file:"
+  },
+  {
+    "line": 23,
+    "code": "            parts = line.strip().split(',')"
+  },
+  {
+    "line": 24,
+    "code": "            customer_id, customer_email, bank, country, level = parts"
+  },
+  {
+    "line": 25,
+    "code": "            is_premium = (level == 'premium')"
+  },
+  {
+    "line": 26,
+    "code": "            if country in target_countries:"
+  },
+  {
+    "line": 27,
+    "code": "                customer_data[customer_email] = (bank, country, is_premium)"
+  },
+  {
+    "line": 28,
+    "code": ""
+  },
+  {
+    "line": 29,
+    "code": "    with open(\"data/mails.csv\") as file:"
+  },
+  {
+    "line": 30,
+    "code": "        for line in file:"
+  },
+  {
+    "line": 31,
+    "code": "            parts = line.strip().split(\",\")"
+  },
+  {
+    "line": 32,
+    "code": "            mail_id, email, raw_date, mail_subject, mail_text = parts"
+  },
+  {
+    "line": 33,
+    "code": "            mail_year = int(raw_date.split(\"-\")[0])"
+  },
+  {
+    "line": 34,
+    "code": "            if mail_year >= 2022:"
+  },
+  {
+    "line": 35,
+    "code": "                    if email in customer_data:"
+  },
+  {
+    "line": 36,
+    "code": "                        bank, country, is_premium = customer_data[email]"
+  },
+  {
+    "line": 37,
+    "code": "                        title = sanitize(mail_subject)"
+  },
+  {
+    "line": 38,
+    "code": "                        text = sanitize(mail_text)"
+  },
+  {
+    "line": 39,
+    "code": "                        sentiment = sentiment_predictor(mail_text)[0]['label'].lower()"
+  },
+  {
+    "line": 40,
+    "code": "                        output_file.write(f\"{title}\\t{text}\\t{bank}\\t{country}\\t{sentiment}\\t{is_premium}\\n\")"
+  },
+  {
+    "line": 41,
+    "code": ""
+  },
+  {
+    "line": 42,
+    "code": ""
+  },
+  {
+    "line": 43,
+    "code": "import numpy as np"
+  },
+  {
+    "line": 44,
+    "code": "from sentence_transformers import SentenceTransformer"
+  },
+  {
+    "line": 45,
+    "code": ""
+  },
+  {
+    "line": 46,
+    "code": "sentence_embedder = SentenceTransformer(\"all-mpnet-base-v2\")"
+  },
+  {
+    "line": 47,
+    "code": ""
+  },
+  {
+    "line": 48,
+    "code": "def count_words(text):"
+  },
+  {
+    "line": 49,
+    "code": "    return len(text.split(\" \"))"
+  },
+  {
+    "line": 50,
+    "code": ""
+  },
+  {
+    "line": 51,
+    "code": "country_indices = {'DE': 0, 'FR': 1, 'UK': 2}"
+  },
+  {
+    "line": 52,
+    "code": ""
+  },
+  {
+    "line": 53,
+    "code": "titles = []"
+  },
+  {
+    "line": 54,
+    "code": "title_lengths = []"
+  },
+  {
+    "line": 55,
+    "code": "texts = []"
+  },
+  {
+    "line": 56,
+    "code": "countries = []"
+  },
+  {
+    "line": 57,
+    "code": ""
+  },
+  {
+    "line": 58,
+    "code": ""
+  },
+  {
+    "line": 59,
+    "code": "with open(\".scratchspace/__intermediate.csv\") as file:"
+  },
+  {
+    "line": 60,
+    "code": "    for line in file:"
+  },
+  {
+    "line": 61,
+    "code": "        parts = line.strip().split(\"\\t\")"
+  },
+  {
+    "line": 62,
+    "code": "        title, text, bank, country, sentiment, is_premium = parts"
+  },
+  {
+    "line": 63,
+    "code": ""
+  },
+  {
+    "line": 64,
+    "code": "        titles.append(title)"
+  },
+  {
+    "line": 65,
+    "code": "        title_lengths.append(len(title))"
+  },
+  {
+    "line": 66,
+    "code": "        texts.append(text)"
+  },
+  {
+    "line": 67,
+    "code": "        countries.append(country)"
+  },
+  {
+    "line": 68,
+    "code": ""
+  },
+  {
+    "line": 69,
+    "code": "subject_embeddings = sentence_embedder.encode(titles)"
+  },
+  {
+    "line": 70,
+    "code": "text_embeddings = sentence_embedder.encode(texts)"
+  },
+  {
+    "line": 71,
+    "code": "title_lengths_column = np.array(title_lengths)"
+  },
+  {
+    "line": 72,
+    "code": "title_lengths_column = (title_lengths_column - np.mean(title_lengths_column)) / np.std(title_lengths_column)"
+  },
+  {
+    "line": 73,
+    "code": ""
+  },
+  {
+    "line": 74,
+    "code": "country_onehot = np.zeros((len(countries), len(country_indices)))"
+  },
+  {
+    "line": 75,
+    "code": "for row, country in enumerate(countries):"
+  },
+  {
+    "line": 76,
+    "code": "    country_onehot[row, country_indices[country]] = 1.0"
+  },
+  {
+    "line": 77,
+    "code": ""
+  },
+  {
+    "line": 78,
+    "code": ""
+  },
+  {
+    "line": 79,
+    "code": "X = np.concatenate(("
+  },
+  {
+    "line": 80,
+    "code": "    subject_embeddings,"
+  },
+  {
+    "line": 81,
+    "code": "    text_embeddings,"
+  },
+  {
+    "line": 82,
+    "code": "    title_lengths_column.reshape(-1,1),"
+  },
+  {
+    "line": 83,
+    "code": "    country_onehot"
+  },
+  {
+    "line": 84,
+    "code": "), axis=1)"
+  },
+  {
+    "line": 85,
+    "code": ""
+  },
+  {
+    "line": 86,
+    "code": ""
+  },
+  {
+    "line": 87,
+    "code": "labels = []"
+  },
+  {
+    "line": 88,
+    "code": "with open(\".scratchspace/__intermediate.csv\") as file:"
+  },
+  {
+    "line": 89,
+    "code": "    for line in file:"
+  },
+  {
+    "line": 90,
+    "code": "        parts = line.strip().split(\"\\t\")"
+  },
+  {
+    "line": 91,
+    "code": "        title, text, bank, country, sentiment, is_premium = parts"
+  },
+  {
+    "line": 92,
+    "code": ""
+  },
+  {
+    "line": 93,
+    "code": "        label = 0.0"
+  },
+  {
+    "line": 94,
+    "code": "        if sentiment == 'negative' and is_premium == 'True':"
+  },
+  {
+    "line": 95,
+    "code": "            label = 1.0"
+  },
+  {
+    "line": 96,
+    "code": "        labels.append(label)"
+  },
+  {
+    "line": 97,
+    "code": ""
+  },
+  {
+    "line": 98,
+    "code": "y = np.array(labels)"
+  },
+  {
+    "line": 99,
+    "code": ""
+  },
+  {
+    "line": 100,
+    "code": "num_features = X.shape[1]"
+  },
+  {
+    "line": 101,
+    "code": ""
+  },
+  {
+    "line": 102,
+    "code": "from sklearn.linear_model import SGDClassifier"
+  },
+  {
+    "line": 103,
+    "code": "model = SGDClassifier(loss=\"log_loss\", penalty=None)"
+  },
+  {
+    "line": 104,
+    "code": "model.fit(X, y)"
+  },
+  {
+    "line": 105,
+    "code": ""
+  },
+  {
+    "line": 106,
+    "code": "np.save(f'.scratchspace/X_train.npy', X)"
+  },
+  {
+    "line": 107,
+    "code": "np.save(f'.scratchspace/y_train.npy', y)"
+  },
+  {
+    "line": 108,
+    "code": ""
+  },
+  {
+    "line": 109,
+    "code": "import pickle"
+  },
+  {
+    "line": 110,
+    "code": "with open(f\".scratchspace/__model.pkl\", 'wb') as model_file:"
+  },
+  {
+    "line": 111,
+    "code": "    pickle.dump(model, model_file)"
+  }
+]

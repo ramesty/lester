@@ -1,0 +1,18 @@
+{
+  "data_preparation": [
+    1,
+    40
+  ],
+  "data_featurisation": [
+    43,
+    84
+  ],
+  "label extraction": [
+    87,
+    98
+  ],
+  "model_training": [
+    102,
+    103
+  ]
+}

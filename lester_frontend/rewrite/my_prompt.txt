@@ -1,0 +1,47 @@
+Given the following three pipeline phases, please respond where each phase starts and ends. 
+You only need to return an array for each phase with two numerical values, 
+the start line and end line. The imports should be included in a specific phase. 
+All the code should fit into one of the four phases, with the exception of some model code that should be ommitted.
+
+The four phases and a quick description are:
+Data Preperation:
+	- relevant imports used for the following.
+	- Loading Data
+	- Filtering or removing outliers
+	- Handling missing values
+	- standardizing, splitting or stripping data
+	- Although data is cleaned, data is still in its original format
+
+Data Featurisation:
+	- relevant imports used for the following.
+	- One hot encoding data
+	- Sentence embeddings
+	- Computing new features
+	- Occurs after data is prepared and cleaned
+	- Creates new columns
+	- Data is in numerical values
+
+Label extraction:
+	- Label extraction involves identifying or generating the target variable (y) from raw data.
+	- This step precedes any feature engineering or model training.
+	- It's part of structuring the dataset into features (X) and labels (y), which is a fundamental task in preparing the data.
+
+Model training:
+	- relevant imports used for the following.
+	- Ml model is instantiated
+	- Loss function might be defined
+	- Do not include the Model being fitted!
+	- Do not include the Model being evaluated!
+	- Do not include the Model being saved!
+	- THis will result in additional code, please do not include this as part of the response
+
+Return your answer as:
+{
+  "data_preparation": [start_line, end_line],
+  "data_featurisation": [start_line, end_line],
+  "label extraction" : [start_line, end_line],
+  "model_training": [start_line, end_line]
+}
+
+JSON code:
+{code_json}

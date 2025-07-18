@@ -1,0 +1,131 @@
+
+ ----------------------------------------------- 
+
+DATAPREP_SYNTHESIZED:
+
+
+def __dataprep(customers_file, mails_file):
+    import lester as ld
+    import os
+    from transformers import pipeline
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
+    import warnings
+
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
+    target_countries = ['UK', 'DE', 'FR']
+    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+
+    def matches_usecase(text):
+        return "complaint" in text or "bank account" in text
+
+    def sanitize(text):
+        return text.lower()
+
+    # Read customer data
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
+
+    # Filter for target countries
+    customers_df = customers_df.filter(f'country in {target_countries}')
+
+    # Define is_premium
+    def define_is_premium(level):
+        return level == 'premium'
+    
+    customers_df = customers_df.project('is_premium', ['level'], define_is_premium)
+
+    # Read mails data
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
+
+    # Filter for mails after 2021
+    mails_df = mails_df.filter('int(raw_date.split("-")[0]) >= 2022')
+
+    # Join customers and mails data
+    merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
+
+    # Sanitize mail subject
+    merged_df = merged_df.project('title', ['mail_subject'], lambda mail_subject: sanitize(mail_subject))
+
+    # Sanitize mail text
+    merged_df = merged_df.project('text', ['mail_text'], lambda mail_text: sanitize(mail_text))
+
+    # Predict sentiment
+    def predict_sentiment(mail_text):
+        return sentiment_predictor(mail_text)[0]['label'].lower()
+    
+    merged_df = merged_df.project('sentiment', ['mail_text'], predict_sentiment)
+
+    # Select final columns
+    result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+
+    return result_df
+
+ ----------------------------------------------- 
+
+FEATURE_SYNTHESIZED:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sentence_transformers import SentenceTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+    
+    class SentenceEmbeddingsTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.model = SentenceTransformer(model_name)
+        
+        def fit(self, X, y=None):
+            return self
+        
+        def transform(self, X, y=None):
+            return self.model.encode(X)
+    
+    class TitleLengthTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+        
+        def transform(self, X, y=None):
+            return np.array([len(x) for x in X]).reshape(-1, 1)
+    
+    country_indices = {'DE': 0, 'FR': 1, 'UK': 2}
+    
+    # Define the ColumnTransformer
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ('subject_embeddings', SentenceEmbeddingsTransformer(), 'title'),
+            ('text_embeddings', SentenceEmbeddingsTransformer(), 'text'),
+            ('title_length', StandardScaler(), ['title']),
+            ('country_onehot', OneHotEncoder(categories=[list(country_indices.keys())]), ['country'])
+        ],
+        remainder='drop'
+    )
+    
+    return column_transformer
+
+# Usage:
+# column_transformer = __featurise()
+
+ ----------------------------------------------- 
+
+MODEL_SYNTHESIZED:
+
+
+def __model(num_features):
+    import torch
+    import torch.nn as nn
+
+    class LogisticRegressionModel(nn.Module):
+        def __init__(self, num_features):
+            super(LogisticRegressionModel, self).__init__()
+            self.linear = nn.Linear(num_features, 1)
+
+        def forward(self, x):
+            return torch.sigmoid(self.linear(x))
+
+    model = LogisticRegressionModel(num_features)
+    loss = nn.BCELoss()
+
+    return model, loss
