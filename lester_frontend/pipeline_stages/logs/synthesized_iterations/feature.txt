@@ -751,3 +751,450 @@ def __featurise():
 
 # Usage:
 # column_transformer = __featurise()
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sentence_transformers import SentenceTransformer
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name='all-mpnet-base-v2'):
+            self.model_name = model_name
+            self.model = SentenceTransformer(self.model_name)
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return self.model.encode(X)
+
+    class WordCountTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return np.array([len(text.split(" ")) for text in X]).reshape(-1, 1)
+
+    country_indices = {'DE': 0, 'FR': 1, 'UK': 2}
+
+    # Read data from the intermediate file
+    titles = []
+    title_lengths = []
+    texts = []
+    countries = []
+
+    with open(".scratchspace/__intermediate.csv") as file:
+        for line in file:
+            parts = line.strip().split("\t")
+            title, text, bank, country, sentiment, is_premium = parts
+
+            titles.append(title)
+            title_lengths.append(len(title))
+            texts.append(text)
+            countries.append(country)
+
+    # Define ColumnTransformer with appropriate transformers
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ('title_embedding', SentenceEmbeddingTransformer(), 'title'),
+            ('text_embedding', SentenceEmbeddingTransformer(), 'text'),
+            ('title_length', StandardScaler(), ['title_length']),
+            ('country_onehot', OneHotEncoder(categories=[list(country_indices.keys())]), ['country'])
+        ],
+        remainder='drop'
+    )
+
+    return column_transformer
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sentence_transformers import SentenceTransformer
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+
+    # Initialize the Sentence Transformer model
+    sentence_embedder = SentenceTransformer("all-mpnet-base-v2")
+
+    # Define the function to count words
+    def count_words(text):
+        return len(text.split(" "))
+
+    # Define transformers for each feature
+    def embed_sentences(texts):
+        return sentence_embedder.encode(texts)
+
+    embed_transformer = FunctionTransformer(func=embed_sentences, validate=False)
+    count_transformer = FunctionTransformer(func=lambda x: np.array([count_words(t) for t in x]).reshape(-1, 1), validate=False)
+
+    # StandardScaler for title length
+    scaler = StandardScaler()
+
+    # OneHotEncoder for country
+    country_onehot_encoder = OneHotEncoder(categories=[['DE', 'FR', 'UK']], drop=None, sparse=False)
+
+    # ColumnTransformer to combine all features
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('title_embed', embed_transformer, 'title'),
+            ('text_embed', embed_transformer, 'text'),
+            ('title_length', Pipeline([('count', count_transformer), ('scale', scaler)]), 'title'),
+            ('country_onehot', country_onehot_encoder, ['country'])
+        ]
+    )
+
+    return preprocessor
+
+# Create an unfitted instance of the ColumnTransformer
+__featurise_instance = __featurise()
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sentence_transformers import SentenceTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.model = SentenceTransformer(self.model_name)
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return self.model.encode(X)
+
+    class TextLengthTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return np.array([len(text) for text in X]).reshape(-1, 1)
+
+    # Load data from the intermediate CSV file
+    data = np.genfromtxt(".scratchspace/__intermediate.csv", delimiter="\t", dtype=str)
+    
+    # Extract columns
+    titles = data[:, 0]
+    texts = data[:, 1]
+    countries = data[:, 3]
+
+    # Define the transformers for each feature
+    transformers = [
+        ("title_embedding", SentenceEmbeddingTransformer(), "title"),
+        ("text_embedding", SentenceEmbeddingTransformer(), "text"),
+        ("title_length", Pipeline([
+            ("length", TextLengthTransformer()),
+            ("scaler", StandardScaler())
+        ]), "title"),
+        ("country_onehot", OneHotEncoder(categories=[['DE', 'FR', 'UK']], sparse=False), ["country"])
+    ]
+
+    # Create the ColumnTransformer
+    featuriser = ColumnTransformer(transformers, remainder='drop')
+
+    return featuriser
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.base import BaseEstimator, TransformerMixin
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sentence_transformers import SentenceTransformer
+
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.embedder = SentenceTransformer(self.model_name)
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return np.array([self.embedder.encode(text) for text in X])
+
+    class TextLengthTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return np.array([[len(text)] for text in X])
+
+    country_indices = {'DE': 0, 'FR': 1, 'UK': 2}
+
+    def load_data():
+        titles = []
+        title_lengths = []
+        texts = []
+        countries = []
+
+        with open(".scratchspace/__intermediate.csv") as file:
+            for line in file:
+                parts = line.strip().split("\t")
+                title, text, bank, country, sentiment, is_premium = parts
+
+                titles.append(title)
+                title_lengths.append(len(title))
+                texts.append(text)
+                countries.append(country)
+        
+        return titles, texts, countries
+
+    titles, texts, countries = load_data()
+
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ("title_embedding", SentenceEmbeddingTransformer(), "title"),
+            ("text_embedding", SentenceEmbeddingTransformer(), "text"),
+            ("title_length", Pipeline([
+                ("length", TextLengthTransformer()),
+                ("scaler", StandardScaler())
+            ]), "title"),
+            ("country_onehot", OneHotEncoder(categories=[list(country_indices.keys())]), ["country"])
+        ],
+        remainder='drop'
+    )
+
+    return column_transformer
+
+# Example of how to use the returned ColumnTransformer
+# column_transformer = __featurise()
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sentence_transformers import SentenceTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+    class SentenceEmbedderTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.embedder = SentenceTransformer(self.model_name)
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return self.embedder.encode(X)
+
+    def count_words(text):
+        return len(text.split(" "))
+
+    # Create transformers for each feature
+    sentence_embedder = SentenceEmbedderTransformer()
+
+    title_pipeline = Pipeline([
+        ('embed', sentence_embedder),
+    ])
+
+    text_pipeline = Pipeline([
+        ('embed', sentence_embedder),
+    ])
+
+    title_length_pipeline = Pipeline([
+        ('length', FunctionTransformer(lambda x: np.array([len(text) for text in x]).reshape(-1, 1))),
+        ('scale', StandardScaler())
+    ])
+
+    country_pipeline = Pipeline([
+        ('onehot', OneHotEncoder(categories=[['DE', 'FR', 'UK']], handle_unknown='ignore'))
+    ])
+
+    # Combine all the feature transformations
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('title', title_pipeline, 'title'),
+            ('text', text_pipeline, 'text'),
+            ('title_length', title_length_pipeline, 'title'),
+            ('country', country_pipeline, ['country'])
+        ],
+        remainder='drop'
+    )
+
+    return preprocessor
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sentence_transformers import SentenceTransformer
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+    # Custom Transformer for Sentence Embeddings
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self):
+            self.sentence_embedder = SentenceTransformer("all-mpnet-base-v2")
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return self.sentence_embedder.encode(X)
+
+    # Custom Transformer for Title Length Scaling
+    class TitleLengthTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            self.scaler = StandardScaler()
+            lengths = np.array([len(title) for title in X]).reshape(-1, 1)
+            self.scaler.fit(lengths)
+            return self
+
+        def transform(self, X):
+            lengths = np.array([len(title) for title in X]).reshape(-1, 1)
+            return self.scaler.transform(lengths)
+
+    # Load data from file
+    titles = []
+    texts = []
+    countries = []
+
+    with open(".scratchspace/__intermediate.csv") as file:
+        for line in file:
+            parts = line.strip().split("\t")
+            title, text, bank, country, sentiment, is_premium = parts
+
+            titles.append(title)
+            texts.append(text)
+            countries.append(country)
+
+    # Define ColumnTransformer
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ("title_embeddings", SentenceEmbeddingTransformer(), "title"),
+            ("text_embeddings", SentenceEmbeddingTransformer(), "text"),
+            ("title_length", TitleLengthTransformer(), "title"),
+            ("country_onehot", OneHotEncoder(categories=[['DE', 'FR', 'UK']], sparse=False), ["country"])
+        ]
+    )
+
+    return column_transformer
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.base import BaseEstimator, TransformerMixin
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sentence_transformers import SentenceTransformer
+
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.model = SentenceTransformer(self.model_name)
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return self.model.encode(X)
+
+    class WordCountTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return np.array([len(text.split(" ")) for text in X]).reshape(-1, 1)
+
+    # Define the column transformer
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ('title_embedding', SentenceEmbeddingTransformer(), 'title'),
+            ('text_embedding', SentenceEmbeddingTransformer(), 'text'),
+            ('title_length', WordCountTransformer(), 'title'),
+            ('country_onehot', OneHotEncoder(categories=[['DE', 'FR', 'UK']], drop=None), ['country']),
+        ],
+        remainder='drop'  # Drop any columns not specified in transformers
+    )
+
+    return column_transformer
+
+ ----------------------------------------------- 
+
+feature:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sentence_transformers import SentenceTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+    import pandas as pd
+
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.embedder = SentenceTransformer(model_name)
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return self.embedder.encode(X)
+
+    class WordCountTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X):
+            return np.array([len(text.split(" ")) for text in X]).reshape(-1, 1)
+
+    # Load data into DataFrame
+    df = pd.read_csv(".scratchspace/__intermediate.csv", sep="\t", header=None,
+                     names=["title", "text", "bank", "country", "sentiment", "is_premium"])
+
+    # Define ColumnTransformer
+    column_transformer = ColumnTransformer([
+        ('subject_embedding', SentenceEmbeddingTransformer(), 'title'),
+        ('text_embedding', SentenceEmbeddingTransformer(), 'text'),
+        ('title_length', Pipeline([
+            ('word_count', WordCountTransformer()),
+            ('scaler', StandardScaler())
+        ]), 'title'),
+        ('country_onehot', OneHotEncoder(categories=[['DE', 'FR', 'UK']], sparse=False), ['country'])
+    ], remainder='drop')
+
+    return column_transformer

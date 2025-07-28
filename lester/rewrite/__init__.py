@@ -14,7 +14,7 @@ def extract_code(response):
         print(f"SYNTACTICALLY INCORRECT CODE GENERATED:\n\n{e}\\n\n{generated_code}")
 
 
-def generate_dataprep_code(task, model):
+async def generate_dataprep_code(task, model):
 
     with open("lester/__init__.py", "r") as lib_file:
         ld_lib_code = lib_file.read()
@@ -48,7 +48,7 @@ def generate_dataprep_code(task, model):
     return generated_code
 
 
-def generate_featurisation_code(task, model):
+async def generate_featurisation_code(task, model):
 
     with open("messy_original_pipeline.py", "r") as file:
         messy_code = file.read()
@@ -68,7 +68,7 @@ def generate_featurisation_code(task, model):
     return generated_code
 
 
-def generate_model_code(task, model):
+async def generate_model_code(task, model):
     params = {
         'code': task.original_code
     }
@@ -88,7 +88,7 @@ def write_prompt_to_file(prompt):
         out.write(("-----------------------------------------"))
         out.write(prompt)
 
-def regenerate_code(model, generated_code, previous_error):
+async def regenerate_code(model, generated_code, previous_error):
 
     params = {
         'generated_code': generated_code,

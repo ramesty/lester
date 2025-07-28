@@ -3,8 +3,11 @@ import { callBackend } from '../utils/api';
 import Sidebar from "../components/Sidebar";
 import Codebox from "../components/Codebox";
 import Loading from "../components/Loading";
+import { messy_original_pipeline, dataprep_input_arg_names, dataprep_input_schemas, dataprep_output_columns, featurisation_input_schema, initialHighlightMap, initialEditorDecorations } from "../assets/input_data";
 
 import "../App.css";
+
+// redux framework
 
 function Home() {
 
@@ -13,16 +16,17 @@ function Home() {
   const monacoRef = useRef(null);
 
   // Input Variables
-  const [inputs, setInputs] = useState(Array(4).fill());
-  const [inputCode, setInputCode] = useState("def foo():\n    return 42\n\nprint(foo())");
+  const [inputs, setInputs] = useState([dataprep_input_arg_names, dataprep_input_schemas, dataprep_output_columns, featurisation_input_schema]);
+  const [inputCode, setInputCode] = useState(messy_original_pipeline);
   const [colour, setColour] = useState("green");
-  const [decorations, setDecorations] = useState([]);
-  const [highlightMap, setHighlightMap] = useState({});
+  const [decorations, setDecorations] = useState(initialEditorDecorations);
+  const [highlightMap, setHighlightMap] = useState(initialHighlightMap);
   
   // Error checking on code submission
   const [validCode, setValidCode] = useState(true)
   const [submitError, setSubmitError] = useState('');
   const [submitErrorMsg, setSubmitErrorMsg] = useState([]);
+  const [valid, setValid] = useState(Array(4).fill(true));
 
   // waiting and receiving response 
   const [loading, setLoading] = useState(false);
@@ -35,7 +39,7 @@ function Home() {
 
   // Decorations and colours for synthesized code
   const [responseDecorations, setResponseDecorations] = useState([]);
-  const [responseCode, setResponseCode] = useState("def foo():\n    return 42\n\nprint(foo())");
+  const [responseCode, setResponseCode] = useState("");
   const [lineColourMap, setLineColourMap] = useState([]);
 
   // Variables for testing and regeneration
@@ -234,7 +238,7 @@ function Home() {
     try {
       const result = await callBackend({
         url: 'http://127.0.0.1:8000/run',
-        payload: { code, highlightMap, manualInputs: inputs },
+        payload: { inputCode, highlightMap, manualInputs: inputs },
       });
       setResponse(result);
       console.log("Submitted inputs:", inputs.map(v => JSON.parse(v)));
@@ -252,6 +256,7 @@ function Home() {
       
       <Sidebar inputs={inputs}
         setInputs={setInputs}
+        valid={valid}
         colour={colour}
         setColour={setColour}
         testSelection={testSelection}
@@ -270,13 +275,16 @@ function Home() {
       <div className="grid grid-flow-col grid-rows-7 col-span-5">
 
         <div className="grid grid-cols-2 row-span-6 gap-4">
-            <Codebox validCode={validCode} title={"Original Code"} code={inputCode} handleCodeChange={handleCodeChange} editorRef={editorRef} monacoRef={monacoRef} isReadOnly={false} />
-            <Codebox validCode={validCode} title={"Synthesized Code"} code={responseCode} handleCodeChange={handleResponseCodeChange} editorRef={responseEditorRef} monacoRef={responseMonacoRef} isReadOnly={true}/>
+            <Codebox validCode={validCode} title={"Original Code"} code={inputCode} handleCodeChange={handleCodeChange} handleHighlight={handleHighlight} editorRef={editorRef} monacoRef={monacoRef} isReadOnly={false} />
+            <Codebox title={"Synthesized Code"} code={responseCode} handleCodeChange={handleResponseCodeChange} editorRef={responseEditorRef} monacoRef={responseMonacoRef} isReadOnly={true}/>
 
         </div >
           
         <div className="grid grid-cols-1 row-span-1 mt-4 border rounded border-gray-300">
-            <div><p className="text-center">{testResponse}</p></div>
+            <div>
+                <p className="text-center">Test Response: {testResponse}</p>
+                <p className="text-center">Error Message: {submitErrorMsg}</p>
+            </div>
         </div>
           
       </div>

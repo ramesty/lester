@@ -1,13 +1,14 @@
 import Editor from "@monaco-editor/react";
 
-function Codebox({validCode, title, code, handleCodeChange, isReadOnly, editorRef, monacoRef}){
+function Codebox({validCode = true, title, code, handleCodeChange, handleHighlight = () => {}, isReadOnly, editorRef, monacoRef}){
 
     const handleEditorDidMount = (editor, monaco) => {
 
         console.log("editor mount")
-
         editorRef.current = editor;
         monacoRef.current = monaco;
+        handleHighlight()
+        
     };
 
     return(
