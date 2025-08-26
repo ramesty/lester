@@ -6,16 +6,14 @@ dataprep:
 
 def __dataprep(customers_file, mails_file):
     import os
-    import warnings
     from transformers import pipeline
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
+    import warnings
     import lester as ld
 
-    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     target_countries = ['UK', 'DE', 'FR']
-    customer_data = {}
-
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
 
     def matches_usecase(text):
@@ -24,41 +22,143 @@ def __dataprep(customers_file, mails_file):
     def sanitize(text):
         return text.lower()
 
-    # Load customers data
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'])
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',', parse_dates=False)
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',', parse_dates=False)
 
-    # Filter customers by target countries
     customers_df = customers_df.filter("country in @target_countries")
-
-    # Create is_premium column
-    customers_df = customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
-
-    # Select relevant columns
+    customers_df = customers_df.project('is_premium', ['level'], lambda x: x == 'premium')
     customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
 
-    # Load mails data
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'])
-
-    # Create mail_year column
-    mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
-
-    # Filter mails from 2022 onwards
+    mails_df = mails_df.project('mail_year', ['raw_date'], lambda x: int(x.split("-")[0]))
     mails_df = mails_df.filter("mail_year >= 2022")
 
-    # Join mails with customers data
     merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
 
-    # Create title column
     merged_df = merged_df.project('title', ['mail_subject'], sanitize)
-
-    # Create text column
     merged_df = merged_df.project('text', ['mail_text'], sanitize)
+    merged_df = merged_df.project('sentiment', ['mail_text'], lambda x: sentiment_predictor(x)[0]['label'].lower())
 
-    # Create sentiment column
-    merged_df = merged_df.project('sentiment', ['mail_text'], lambda mail_text: sentiment_predictor(mail_text)[0]['label'].lower())
-
-    # Select final columns
     result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+
+    return result_df
+
+ ----------------------------------------------- 
+
+dataprep:
+
+
+def __featurise():
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sentence_transformers import SentenceTransformer
+    from sklearn.base import BaseEstimator, TransformerMixin
+    import pandas as pd
+    
+    # Custom transformer for sentence embeddings
+    class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
+        def __init__(self, model_name="all-mpnet-base-v2"):
+            self.model_name = model_name
+            self.embedder = None
+            
+        def fit(self, X, y=None):
+            self.embedder = SentenceTransformer(self.model_name)
+            return self
+        
+        def transform(self, X):
+            return self.embedder.encode(X)
+
+    # Custom transformer for word count
+    class WordCountTransformer(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+        
+        def transform(self, X):
+            return np.array([len(text.split(" ")) for text in X]).reshape(-1, 1)
+
+    # Define the transformers
+    title_embedding_transformer = Pipeline(steps=[
+        ('sentence_embedding', SentenceEmbeddingTransformer())
+    ])
+    
+    text_embedding_transformer = Pipeline(steps=[
+        ('sentence_embedding', SentenceEmbeddingTransformer())
+    ])
+    
+    title_length_standardizer = Pipeline(steps=[
+        ('word_count', WordCountTransformer()),
+        ('scaler', StandardScaler())
+    ])
+    
+    country_onehot_encoder = OneHotEncoder(categories=[['DE', 'FR', 'UK']], drop=None, sparse_output=False)
+    
+    # Column Transformer
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('title_embedding', title_embedding_transformer, 'title'),
+            ('text_embedding', text_embedding_transformer, 'text'),
+            ('title_length', title_length_standardizer, 'title'),
+            ('country_onehot', country_onehot_encoder, ['country'])
+        ]
+    )
+    
+    return preprocessor
+
+ ----------------------------------------------- 
+
+dataprep:
+
+
+def __dataprep(customers_file, mails_file):
+    import os
+    from transformers import pipeline
+    import warnings
+    import lester as ld
+
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
+    # Load data
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=",", parse_dates=False)
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=",", parse_dates=False)
+
+    target_countries = ['UK', 'DE', 'FR']
+
+    # Initialize sentiment analysis pipeline
+    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+
+    # Define helper functions
+    def sanitize(text):
+        return text.lower()
+
+    def extract_year(raw_date):
+        return int(raw_date.split("-")[0])
+
+    def determine_is_premium(level):
+        return level == 'premium'
+
+    def get_sentiment(text):
+        return sentiment_predictor(text)[0]['label'].lower()
+
+    # Filter customers based on target countries and prepare premium column
+    customers_df = customers_df.filter('country in @target_countries')
+    customers_df = customers_df.project('is_premium', ['level'], lambda level: determine_is_premium(level))
+
+    # Filter mails based on year
+    mails_df = mails_df.project('mail_year', ['raw_date'], extract_year)
+    mails_df = mails_df.filter('mail_year >= 2022')
+
+    # Join customers and mails dataframes on email
+    joined_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
+
+    # Create the final columns
+    joined_df = joined_df.project('title', ['mail_subject'], sanitize)
+    joined_df = joined_df.project('text', ['mail_text'], sanitize)
+    joined_df = joined_df.project('sentiment', ['mail_text'], get_sentiment)
+
+    # Select result columns
+    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
 
     return result_df
 
@@ -69,9 +169,66 @@ dataprep:
 
 def __dataprep(customers_file, mails_file):
     import os
+    from transformers import pipeline
     import warnings
     import lester as ld
+
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
+    # Load data
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=",", parse_dates=False)
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=",", parse_dates=False)
+
+    target_countries = ['UK', 'DE', 'FR']
+
+    # Initialize sentiment analysis pipeline
+    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+
+    # Define helper functions
+    def sanitize(text):
+        return text.lower()
+
+    def extract_year(raw_date):
+        return int(raw_date.split("-")[0])
+
+    def determine_is_premium(level):
+        return level == 'premium'
+
+    def get_sentiment(text):
+        return sentiment_predictor(text)[0]['label'].lower()
+
+    # Filter customers based on target countries and prepare premium column
+    customers_df = customers_df[customers_df['country'].isin(target_countries)]
+    customers_df['is_premium'] = customers_df['level'].apply(determine_is_premium)
+
+    # Filter mails based on year
+    mails_df['mail_year'] = mails_df['raw_date'].apply(extract_year)
+    mails_df = mails_df[mails_df['mail_year'] >= 2022]
+
+    # Join customers and mails dataframes on email
+    joined_df = mails_df.merge(customers_df, left_on='email', right_on='customer_email', how='inner')
+
+    # Create the final columns
+    joined_df['title'] = joined_df['mail_subject'].apply(sanitize)
+    joined_df['text'] = joined_df['mail_text'].apply(sanitize)
+    joined_df['sentiment'] = joined_df['mail_text'].apply(get_sentiment)
+
+    # Select result columns
+    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+
+    return result_df
+
+ ----------------------------------------------- 
+
+dataprep:
+
+
+def __dataprep(customers_file, mails_file):
+    import os
     from transformers import pipeline
+    import warnings
+    import lester as ld
 
     os.environ["TOKENIZERS_PARALLELISM"] = "False"
     warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -79,35 +236,40 @@ def __dataprep(customers_file, mails_file):
     target_countries = ['UK', 'DE', 'FR']
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
 
+    def matches_usecase(text):
+        return "complaint" in text or "bank account" in text
+
     def sanitize(text):
         return text.lower()
 
-    def is_premium(level):
-        return level == 'premium'
-
-    def extract_year(raw_date):
-        return int(raw_date.split("-")[0])
-
     # Read customer data
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
-    customers_df = customers_df.filter("country in @target_countries")
-    customers_df = customers_df.project('is_premium', ['level'], is_premium)
-    customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',', parse_dates=False)
+    
+    # Filter for target countries
+    customers_df = customers_df.filter('country in @target_countries')
+    
+    # Create is_premium column
+    customers_df = customers_df.project('is_premium', ['level'], lambda x: x[0] == 'premium')
+    
+    # Read mail data
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',', parse_dates=False)
 
-    # Read mails data
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
-    mails_df = mails_df.project('mail_year', ['raw_date'], extract_year)
-    mails_df = mails_df.filter("mail_year >= 2022")
+    # Filter mails from 2022 onwards
+    mails_df = mails_df.filter('int(raw_date.split("-")[0]) >= 2022')
 
-    # Join customer and mails data
+    # Join customers and mails on email
     combined_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
 
-    # Process combined data
-    combined_df = combined_df.project('title', ['mail_subject'], sanitize)
-    combined_df = combined_df.project('text', ['mail_text'], sanitize)
-    combined_df = combined_df.project('sentiment', ['mail_text'], lambda x: sentiment_predictor(x)[0]['label'].lower())
+    # Sanitize mail_subject to title
+    combined_df = combined_df.project('title', ['mail_subject'], lambda x: sanitize(x[0]))
 
-    # Select the required columns
+    # Sanitize mail_text to text
+    combined_df = combined_df.project('text', ['mail_text'], lambda x: sanitize(x[0]))
+
+    # Predict sentiment
+    combined_df = combined_df.project('sentiment', ['mail_text'], lambda x: sentiment_predictor(x[0])[0]['label'].lower())
+
+    # Select final columns
     result_df = combined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
 
     return result_df
@@ -118,12 +280,12 @@ dataprep:
 
 
 def __dataprep(customers_file, mails_file):
-    import lester as ld
     import os
     from transformers import pipeline
-    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     import warnings
+    import lester as ld
 
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     target_countries = ['UK', 'DE', 'FR']
@@ -136,87 +298,40 @@ def __dataprep(customers_file, mails_file):
         return text.lower()
 
     # Read customer data
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',', parse_dates=False)
 
-    # Filter for target countries
-    customers_df = customers_df.filter(f'country in {target_countries}')
+    # Filter customers based on target countries
+    customers_df = customers_df.filter('country in @target_countries')
 
-    # Define is_premium
-    def define_is_premium(level):
+    # Add is_premium column
+    def determine_premium(level):
         return level == 'premium'
     
-    customers_df = customers_df.project('is_premium', ['level'], define_is_premium)
-
+    customers_df = customers_df.project('is_premium', ['level'], determine_premium)
+    
     # Read mails data
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
-
-    # Filter for mails after 2021
-    mails_df = mails_df.filter('int(raw_date.split("-")[0]) >= 2022')
-
-    # Join customers and mails data
-    merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
-
-    # Sanitize mail subject
-    merged_df = merged_df.project('title', ['mail_subject'], lambda mail_subject: sanitize(mail_subject))
-
-    # Sanitize mail text
-    merged_df = merged_df.project('text', ['mail_text'], lambda mail_text: sanitize(mail_text))
-
-    # Predict sentiment
-    def predict_sentiment(mail_text):
-        return sentiment_predictor(mail_text)[0]['label'].lower()
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',', parse_dates=False)
     
-    merged_df = merged_df.project('sentiment', ['mail_text'], predict_sentiment)
+    # Filter mails based on year
+    def filter_year(raw_date):
+        mail_year = int(raw_date.split("-")[0])
+        return mail_year >= 2022
+    
+    mails_df = mails_df.filter('filter_year(raw_date)')
 
-    # Select final columns
-    result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+    # Join customers and mails dataframes
+    joined_df = ld.join(mails_df, customers_df[['customer_email', 'bank', 'country', 'is_premium']], left_on='email', right_on='customer_email')
 
-    return result_df
-
- ----------------------------------------------- 
-
-dataprep:
-
-
-def __dataprep(customers_file, mails_file):
-    import lester as ld
-    from transformers import pipeline
-
-    target_countries = ['UK', 'DE', 'FR']
-    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
-
-    def sanitize(text):
-        return text.lower()
-
-    def get_is_premium(level):
-        return level == 'premium'
-
-    def get_mail_year(raw_date):
-        return int(raw_date.split("-")[0])
-
-    def predict_sentiment(mail_text):
-        return sentiment_predictor(mail_text)[0]['label'].lower()
-
-    # Load and process customer data
-    customers = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
-    customers = customers.filter('country in @target_countries')
-    customers = customers.project('is_premium', ['level'], get_is_premium)
-    customers = customers[['customer_email', 'bank', 'country', 'is_premium']]
-
-    # Load and process mail data
-    mails = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
-    mails = mails.project('mail_year', ['raw_date'], get_mail_year)
-    mails = mails.filter('mail_year >= 2022')
-
-    # Join customer and mail data
-    joined_df = ld.join(mails, customers, left_on='email', right_on='customer_email')
-
-    # Process the joined data
+    # Sanitize mail_subject and mail_text, and determine sentiment
     joined_df = joined_df.project('title', ['mail_subject'], sanitize)
     joined_df = joined_df.project('text', ['mail_text'], sanitize)
-    joined_df = joined_df.project('sentiment', ['mail_text'], predict_sentiment)
+    
+    def analyze_sentiment(mail_text):
+        return sentiment_predictor(mail_text)[0]['label'].lower()
+    
+    joined_df = joined_df.project('sentiment', ['mail_text'], analyze_sentiment)
 
-    # Select final columns
+    # Select the required columns
     result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
 
     return result_df
@@ -236,7 +351,6 @@ def __dataprep(customers_file, mails_file):
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     target_countries = ['UK', 'DE', 'FR']
-
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
 
     def matches_usecase(text):
@@ -245,27 +359,26 @@ def __dataprep(customers_file, mails_file):
     def sanitize(text):
         return text.lower()
 
-    # Read and filter customer data
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
-    customers_df = customers_df.filter('country in @target_countries')
+    # Load customer data
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=",", parse_dates=False)
+    customers_df = customers_df.filter("country in @target_countries")
     customers_df = customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
+    customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
 
-    # Read mail data
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
-
-    # Filter mail data
+    # Load mails data
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=",", parse_dates=False)
     mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
-    mails_df = mails_df.filter('mail_year >= 2022')
-
-    # Join customer data with mail data
+    mails_df = mails_df.filter("mail_year >= 2022")
+    
+    # Join dataframes
     merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
 
     # Process data
     merged_df = merged_df.project('title', ['mail_subject'], lambda mail_subject: sanitize(mail_subject))
     merged_df = merged_df.project('text', ['mail_text'], lambda mail_text: sanitize(mail_text))
     merged_df = merged_df.project('sentiment', ['mail_text'], lambda mail_text: sentiment_predictor(mail_text)[0]['label'].lower())
-
-    # Select relevant columns
+    
+    # Select desired columns
     result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
 
     return result_df
@@ -284,129 +397,39 @@ def __dataprep(customers_file, mails_file):
 
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
-    target_countries = ['UK', 'DE', 'FR']
-    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+    # Helper Functions
+    def matches_usecase(text):
+        return "complaint" in text or "bank account" in text
 
     def sanitize(text):
         return text.lower()
 
-    # Read customer data
-    customers_df = ld.read_csv(customers_file, header=None, names=["customer_id", "customer_email", "bank", "country", "level"], sep=",")
-    customers_df = customers_df.filter('country in @target_countries')
-    customers_df = customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
-    customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
-
-    # Read mail data
-    mails_df = ld.read_csv(mails_file, header=None, names=["mail_id", "email", "raw_date", "mail_subject", "mail_text"], sep=",")
-    mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
-    mails_df = mails_df.filter('mail_year >= 2022')
-
-    # Join the dataframes
-    joined_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
-
-    # Sanitize and predict sentiment
-    joined_df = joined_df.project('title', ['mail_subject'], sanitize)
-    joined_df = joined_df.project('text', ['mail_text'], sanitize)
-    joined_df = joined_df.project('sentiment', ['mail_text'], lambda mail_text: sentiment_predictor(mail_text)[0]['label'].lower())
-
-    # Select the final columns for output
-    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
-
-    return result_df
-
- ----------------------------------------------- 
-
-dataprep:
-
-
-def __dataprep(customers_file, mails_file):
-    import os
-    import lester as ld
-    from transformers import pipeline
-    os.environ["TOKENIZERS_PARALLELISM"] = "False"
-    import warnings
-
-    warnings.simplefilter(action='ignore', category=FutureWarning)
-
+    # Constants and setup
     target_countries = ['UK', 'DE', 'FR']
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
 
-    def sanitize(text):
-        return text.lower()
-
-    # Read and process customer data
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
-    customers_df = customers_df.filter('country in @target_countries')
-    customers_df = customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
-    customer_data = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
-
-    # Read and process mail data
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
-    mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
-    mails_df = mails_df.filter('mail_year >= 2022')
-
-    # Join customer and mail data
-    joined_df = ld.join(mails_df, customer_data, left_on='email', right_on='customer_email')
-
-    # Sanitize text and predict sentiment
-    joined_df = joined_df.project('title', ['mail_subject'], sanitize)
-    joined_df = joined_df.project('text', ['mail_text'], sanitize)
-    joined_df = joined_df.project('sentiment', ['mail_text'], lambda mail_text: sentiment_predictor(mail_text)[0]['label'].lower())
-
-    # Select and return the final dataframe
-    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
-    return result_df
-
- ----------------------------------------------- 
-
-dataprep:
-
-
-def __dataprep(customers_file, mails_file):
-    import lester as ld
-    import os
-    from transformers import pipeline
-    os.environ["TOKENIZERS_PARALLELISM"] = "False"
-    import warnings
-
-    warnings.simplefilter(action='ignore', category=FutureWarning)
-
-    target_countries = ['UK', 'DE', 'FR']
-    customer_data = {}
-
-    sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
-
-    def sanitize(text):
-        return text.lower()
-
+    # Load data
     customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',', parse_dates=False)
     mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',', parse_dates=False)
 
-    # Filter customers based on target countries
-    customers_df = customers_df.filter('country in @target_countries')
+    # Filter and prepare customer data
+    filtered_customers_df = customers_df.filter('country in @target_countries')
+    filtered_customers_df = filtered_customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
 
-    # Create is_premium column
-    customers_df = customers_df.project('is_premium', ['level'], lambda x: x == 'premium')
+    # Merge mails with customer data
+    merged_df = ld.join(mails_df, filtered_customers_df, left_on='email', right_on='customer_email')
 
-    # Select relevant columns
-    customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
+    # Filter mails by year
+    filtered_mails_df = merged_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split('-')[0]))
+    filtered_mails_df = filtered_mails_df.filter('mail_year >= 2022')
 
-    # Filter mails based on year
-    mails_df = mails_df.project('mail_year', ['raw_date'], lambda x: int(x.split("-")[0]))
-    mails_df = mails_df.filter('mail_year >= 2022')
-
-    # Join customers and mails dataframes
-    merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
-
-    # Create title and text columns with sanitized text
-    merged_df = merged_df.project('title', ['mail_subject'], sanitize)
-    merged_df = merged_df.project('text', ['mail_text'], sanitize)
-
-    # Create sentiment column
-    merged_df = merged_df.project('sentiment', ['mail_text'], lambda x: sentiment_predictor(x)[0]['label'].lower())
+    # Create final output columns
+    result_df = filtered_mails_df.project('title', ['mail_subject'], sanitize)
+    result_df = result_df.project('text', ['mail_text'], sanitize)
+    result_df = result_df.project('sentiment', ['mail_text'], lambda mail_text: sentiment_predictor(mail_text)[0]['label'].lower())
 
     # Select final columns
-    result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+    result_df = result_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
 
     return result_df
 
@@ -417,16 +440,19 @@ dataprep:
 
 def __dataprep(customers_file, mails_file):
     import os
-    import lester as ld
     from transformers import pipeline
-    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     import warnings
+    import lester as ld
 
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     target_countries = ['UK', 'DE', 'FR']
 
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+
+    def matches_usecase(text):
+        return "complaint" in text or "bank account" in text
 
     def sanitize(text):
         return text.lower()
@@ -434,34 +460,31 @@ def __dataprep(customers_file, mails_file):
     # Load customer data
     customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',', parse_dates=False)
 
-    # Filter customers based on target countries
-    customers_df = customers_df.filter(f'country in {target_countries}')
+    # Filter customers from target countries
+    customers_df = customers_df.filter('country in @target_countries')
 
-    # Add 'is_premium' column
-    customers_df = customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
-
-    # Select necessary columns
-    customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
+    # Create the is_premium column
+    customers_df = customers_df.project(target_column='is_premium', source_columns=['level'], func=lambda level: level == 'premium')
 
     # Load mail data
     mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',', parse_dates=False)
 
-    # Extract mail year
-    mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
-
-    # Filter mails from 2022 and onwards
+    # Filter mails from 2022 onwards
+    mails_df = mails_df.project(target_column='mail_year', source_columns=['raw_date'], func=lambda raw_date: int(raw_date.split("-")[0]))
     mails_df = mails_df.filter('mail_year >= 2022')
 
-    # Join customer and mail data on email
-    merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
+    # Join customer and mail data
+    joined_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
 
-    # Project additional columns
-    merged_df = merged_df.project('title', ['mail_subject'], sanitize)
-    merged_df = merged_df.project('text', ['mail_text'], sanitize)
-    merged_df = merged_df.project('sentiment', ['mail_text'], lambda text: sentiment_predictor(text)[0]['label'].lower())
+    # Sanitize mail_subject and mail_text
+    joined_df = joined_df.project(target_column='title', source_columns=['mail_subject'], func=sanitize)
+    joined_df = joined_df.project(target_column='text', source_columns=['mail_text'], func=sanitize)
 
-    # Select final columns
-    result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+    # Analyze sentiment
+    joined_df = joined_df.project(target_column='sentiment', source_columns=['mail_text'], func=lambda text: sentiment_predictor(text)[0]['label'].lower())
+
+    # Select necessary columns
+    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
 
     return result_df
 
@@ -473,50 +496,38 @@ dataprep:
 def __dataprep(customers_file, mails_file):
     import os
     from transformers import pipeline
-    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     import warnings
     import lester as ld
 
+    os.environ["TOKENIZERS_PARALLELISM"] = "False"
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     target_countries = ['UK', 'DE', 'FR']
-
+    
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
+
+    def matches_usecase(text):
+        return "complaint" in text or "bank account" in text
 
     def sanitize(text):
         return text.lower()
 
-    # Read customer data
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',')
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=",", parse_dates=False)
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=",", parse_dates=False)
     
-    # Filter target countries
-    filtered_customers_df = customers_df.filter('country in @target_countries')
-    
-    # Determine is_premium
-    filtered_customers_df = filtered_customers_df.project(target_column='is_premium', source_columns=['level'], func=lambda level: level == 'premium')
-    
-    # Read mail data
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',')
-    
-    # Extract mail year
-    mails_df = mails_df.project(target_column='mail_year', source_columns=['raw_date'], func=lambda raw_date: int(raw_date.split("-")[0]))
-    
-    # Filter mails from 2022 onwards
-    filtered_mails_df = mails_df.filter('mail_year >= 2022')
-    
-    # Join customers and mails data
-    joined_df = ld.join(filtered_mails_df, filtered_customers_df, left_on='email', right_on='customer_email')
-    
-    # Sanitize mail subject
-    joined_df = joined_df.project(target_column='title', source_columns=['mail_subject'], func=sanitize)
-    
-    # Sanitize mail text
-    joined_df = joined_df.project(target_column='text', source_columns=['mail_text'], func=sanitize)
-    
-    # Predict sentiment
-    joined_df = joined_df.project(target_column='sentiment', source_columns=['mail_text'], func=lambda text: sentiment_predictor(text)[0]['label'].lower())
-    
-    # Select required columns
-    result_df = joined_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
-    
+    customers_df = customers_df.filter("country in @target_countries")
+    customers_df = customers_df.project('is_premium', ['level'], lambda x: x == 'premium')
+    customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
+
+    mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
+    mails_df = mails_df.filter("mail_year >= 2022")
+
+    merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
+
+    merged_df = merged_df.project('title', ['mail_subject'], sanitize)
+    merged_df = merged_df.project('text', ['mail_text'], sanitize)
+    merged_df = merged_df.project('sentiment', ['mail_text'], lambda text: sentiment_predictor(text)[0]['label'].lower())
+
+    result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
+
     return result_df

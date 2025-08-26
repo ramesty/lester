@@ -78,5 +78,4 @@ async def run_code(payload: dict):
     # write_payload(code_lines, highlight_map, manual_inputs, pipeline_stage_lines, code_stages)
 
     await generate_synthesized_pipeline(code_stages['data_preparation'], code_stages['data_featurisation'], code_stages['model_training'], model)
-
     return await format_response()

@@ -1,4 +1,9 @@
-function Loading({loading}){
+import { useSelector } from "react-redux"
+
+function Loading(){
+
+    const loading = useSelector((state)=>state.editor.loading)
+
     return(
     <>
       {loading && (

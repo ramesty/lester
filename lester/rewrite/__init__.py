@@ -40,7 +40,7 @@ async def generate_dataprep_code(task, model):
         'code': task.original_code
     }
 
-    prompt_template = PromptTemplate.from_template(DATAPREP_COT_TEST)
+    prompt_template = PromptTemplate.from_template(DATAPREP_COT)
     prompt = prompt_template.invoke(params)
     response = model.invoke(prompt)
     generated_code = extract_code(response)
@@ -60,7 +60,7 @@ async def generate_featurisation_code(task, model):
         'code': task.original_code
     }
 
-    prompt_template = PromptTemplate.from_template(FEATURISATION_COT_TEST)
+    prompt_template = PromptTemplate.from_template(FEATURISATION_COT)
     prompt = prompt_template.invoke(params)
     response = model.invoke(prompt)
     generated_code = extract_code(response)

@@ -15,6 +15,17 @@ def rename_keys(highlight_map):
         highlight_map[colour] = key_mapping[highlight_map[colour]]
 
 # format
+def extract_code(response):
+    generated_code = response.content
+    if '```json' in generated_code:
+        generated_code = generated_code.split('```json')[1].split('```')[0]
+    try:
+        ast.parse(generated_code)
+        return generated_code
+    except Exception as e:
+        print(f"SYNTACTICALLY INCORRECT CODE GENERATED:\n\n{e}\\n\n{generated_code}")
+
+# format
 def extrapolate_stage_lines(highlight_map):
     pipeline_stage_lines = defaultdict(list)
 
@@ -46,26 +57,6 @@ def split_code_by_stage(code_lines, color_line_map):
     code_stages = join_code_from_buckets(color_buckets)
 
     return code_stages
-
-# format
-async def format_response():
-
-    print("Formatting Response")
-
-    synth_stages = await read_synthesized_code()
-    response = { 
-        "green" : synth_stages["DATAPREP_SYNTHESIZED"],
-        "yellow" : synth_stages["FEATURE_SYNTHESIZED"],
-        "red" : synth_stages["MODEL_SYNTHESIZED"]
-        }
-    
-    formatted_response = []
-
-    for colour, code in response.items():
-        for line in code.splitlines():
-            formatted_response.append({"colour": colour, "line" : line})
-
-    return formatted_response
 
 # format
 def assign_code_to_stage(stages):
@@ -114,3 +105,23 @@ def extract_code(response):
         return generated_code
     except Exception as e:
         print(f"SYNTACTICALLY INCORRECT CODE GENERATED:\n\n{e}\\n\n{generated_code}")
+
+# format
+async def format_response():
+
+    print("Formatting Response")
+
+    synth_stages = await read_synthesized_code()
+    response = { 
+        "green" : synth_stages["DATAPREP_SYNTHESIZED"],
+        "yellow" : synth_stages["FEATURE_SYNTHESIZED"],
+        "red" : synth_stages["MODEL_SYNTHESIZED"]
+        }
+    
+    formatted_response = []
+
+    for colour, code in response.items():
+        for line in code.splitlines():
+            formatted_response.append({"colour": colour, "line" : line})
+    
+    return formatted_response

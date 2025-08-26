@@ -1,17 +1,17 @@
 import pandas as pd
 import numpy as np
 import torch.nn as nn
+import traceback
 
 from lester.classification import instantiate
 from lester_frontend.backend.utils.io_utils import read_synthesized_code, read_synthesized_code_stage, update_error_msg_json
 
-# test
+
 source_paths = {
     'customers_file': './data/synthetic_customers_10.csv',
     'mails_file': './data/synthetic_mails_10.csv',
     }
 
-# test
 def extract_label(df):
     import numpy as np
     label = np.where((df['sentiment'] == 'negative') & (df['is_premium'] == True), 1.0, 0.0)
@@ -20,52 +20,51 @@ def extract_label(df):
 async def run_dataprep_tests():
 
     synth_dp = await read_synthesized_code_stage("DATAPREP_SYNTHESIZED")
-    __dataprep = instantiate("__dataprep", synth_dp)
 
     try:
+        __dataprep = instantiate("__dataprep", synth_dp)
         await test_dataprep(__dataprep, source_paths)
 
-    except Exception as error:
-        err_msg = f"The data preperation phase has failed with the following error {error}"
-        await update_error_msg_json("DATAPREP_SYNTHESIZED", err_msg)
+    except Exception:
+        err_msg = f"The data preperation stage has failed with the following error {traceback.format_exc()}"
+        update_error_msg_json("DATAPREP_SYNTHESIZED", err_msg)
         return err_msg
 
-    return "The Data preperation phase has passed the validation tests!"
+    return "The Data preperation stage has passed the validation tests!"
 
 async def run_featurisation_tests():
         
     synth_feat = await read_synthesized_code_stage("FEATURE_SYNTHESIZED")
-    __featurise = instantiate("__featurise", synth_feat)
 
     try:
+        __featurise = instantiate("__featurise", synth_feat)
         await test_feature_transformer(__featurise, extract_label)
     
-    except Exception as error:
-        err_msg = f"The featurisation phase has failed with the following error {error}"
-        await update_error_msg_json("FEATURE_SYNTHESIZED", err_msg)
+    except Exception:
+        err_msg = f"The featurisation stage has failed with the following error {traceback.format_exc()}"
+        update_error_msg_json("FEATURE_SYNTHESIZED", err_msg)
         return err_msg
     
-    return "The featurisation phase has passed the validation tests!"
+    return "The featurisation stage has passed the validation tests!"
 
 async def run_model_tests():
 
     synth_code = await read_synthesized_code_stage("MODEL_SYNTHESIZED")
-    __model = instantiate("__model", synth_code)
     
     try:
+        __model = instantiate("__model", synth_code)
         await test_model(__model)
-
-    except Exception as error:
-        return f"The featurisation phase has failed with the following error {error}"
     
     except Exception as error:
-        err_msg = f"The model phase has failed with the following error {error}"
+        err_msg = f"The model stage has failed with the following error {error}"
         await update_error_msg_json("MODEL_ERROR", err_msg)
         return err_msg
     
+    return "The Model training stage has passed the validation tests!"
+    
 async def test_dataprep(_lester_dataprep, source_paths):
 
-    assert False
+    # assert False
 
     tracked_df = _lester_dataprep(**source_paths)
     expected_output = pd.read_csv('./lester_frontend/test_pipeline/expected_output/data_prep_output.csv')
@@ -98,7 +97,7 @@ async def test_dataprep(_lester_dataprep, source_paths):
 
 async def test_feature_transformer(encode_features, extract_label):
 
-    assert False
+    # assert False
 
     print("test_feature_transformer running...")
     train_df = pd.read_csv('./lester_frontend/test_pipeline/inputs/feature_train_input.csv')
@@ -134,8 +133,6 @@ async def test_feature_transformer(encode_features, extract_label):
     # pd.testing.assert_frame_equal(y_test, expected_y_test)
 
 async def test_model(__model, ):
-
-    assert False
 
     expected_x_train = pd.read_csv('./lester_frontend/test_pipeline/expected_output/x_train.csv', header=None)
     num_features = expected_x_train.shape[1]

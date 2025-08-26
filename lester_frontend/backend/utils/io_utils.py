@@ -14,17 +14,6 @@ def convert_py_to_json(input_path, output_path=None):
     else:
         print(json.dumps(code_lines, indent=2))
 
-# format
-def extract_code(response):
-    generated_code = response.content
-    if '```json' in generated_code:
-        generated_code = generated_code.split('```json')[1].split('```')[0]
-    try:
-        ast.parse(generated_code)
-        return generated_code
-    except Exception as e:
-        print(f"SYNTACTICALLY INCORRECT CODE GENERATED:\n\n{e}\\n\n{generated_code}")
-
 # read/write
 async def read_synthesized_code():
     with open("./lester_frontend/pipeline_stages/synthesized_stages.json", "r") as f:
@@ -78,12 +67,6 @@ async def write_synthesized_code_to_file(synthesized_stages):
             out_txt.write(value)
 
 # read/write
-async def append_synthesized_iteration_log(stage, iteration_code):
-    with open(f"./lester_frontend/pipeline_stages/logs/synthesized_iterations/{stage}.txt", "a") as f:
-        f.write(f"\n ----------------------------------------------- \n\n{stage}:\n\n")
-        f.write(iteration_code)      
-
-# read/write
 async def update_synthesized_json_stage(stage_name, stage_code):
     path = "./lester_frontend/pipeline_stages/synthesized_stages.json"
 
@@ -95,18 +78,7 @@ async def update_synthesized_json_stage(stage_name, stage_code):
     with open(path, "w") as out:
         json.dump(existing_data, out, indent=2)
 
-async def update_error_msg_json(error_stage_name, error_msg):
-
-    path = "./lester_frontend/pipeline_stages/error_msg.json"
-
-    with open(path, "r") as f:
-        existing_errors = json.load(f)
-
-    existing_errors[error_stage_name] = error_msg
-
-    with open(path, "w") as out_json:
-        json.dump(existing_errors, out_json, indent=2)
-
+# read/write
 async def read_error_msg_json(error_stage_name):
 
     with open("./lester_frontend/pipeline_stages/error_msg.json", "r") as f:
@@ -129,7 +101,25 @@ def write_payload(code_lines, highlight_map, manual_inputs, pipeline_stage_lines
         "pipeline_stage_lines" : pipeline_stage_lines,
         "code_stages" : code_stages
     }
-
     # Save to a file
     with open("./lester_frontend/backend/saved_payload.json", "w") as f:
         json.dump(data_to_save, f, indent=2)
+
+# read/write
+def append_synthesized_iteration_log(stage, iteration_code):
+    with open(f"./lester_frontend/pipeline_stages/logs/synthesized_iterations/{stage}.txt", "a") as f:
+        f.write(f"\n ----------------------------------------------- \n\n{stage}:\n\n")
+        f.write(iteration_code)   
+
+# read/write
+def update_error_msg_json(error_stage_name, error_msg):
+
+    path = "./lester_frontend/pipeline_stages/error_msg.json"
+
+    with open(path, "r") as f:
+        existing_errors = json.load(f)
+
+    existing_errors[error_stage_name] = error_msg
+
+    with open(path, "w") as out_json:
+        json.dump(existing_errors, out_json, indent=2)  

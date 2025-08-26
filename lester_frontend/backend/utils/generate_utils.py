@@ -3,16 +3,18 @@ from lester.rewrite import generate_dataprep_code, generate_featurisation_code, 
 from lester_frontend.sample_inputs.sample_code import messy_original_pipeline, dataprep_input_arg_names, dataprep_input_schemas, dataprep_output_columns, featurisation_input_schema
 from lester_frontend.LLM_task_classes import LLMDataprepTask, LLMFeaturisationTask, LLMModelCodeTransformationTask
 
-from lester_frontend.backend.utils.io_utils import read_synthesized_code_stage, write_synthesized_code_to_file, append_synthesized_iteration_log, read_error_msg_json, update_synthesized_json_stage
+from lester_frontend.backend.utils.io_utils import read_synthesized_code_stage, write_synthesized_code_to_file, append_synthesized_iteration_log, read_error_msg_json, update_synthesized_json_stage, update_error_msg_json
 from lester_frontend.backend.utils.format_utils import create_dictionary, extract_code, format_response
 
 # generate
 async def handle_error(model, ERROR_SYNTHESISED_CODE, error,  SYNTHESIZED_TITLE):
 
     print("Handling error...")
-    updated_stage = await regenerate_code(model, ERROR_SYNTHESISED_CODE, error)
-    await update_synthesized_json_stage(SYNTHESIZED_TITLE, updated_stage)
-    return updated_stage
+    updated_code = await regenerate_code(model, ERROR_SYNTHESISED_CODE, error)
+    await update_synthesized_json_stage(SYNTHESIZED_TITLE, updated_code)
+    update_error_msg_json(SYNTHESIZED_TITLE, "")
+    append_synthesized_iteration_log("dataprep", updated_code)
+    return updated_code
 
 # generate
 async def handle_regenerate_stage(model, reg_stage):
@@ -53,6 +55,30 @@ async def generate_synthesized_pipeline(dataprep_org_code, feature_org_code, mod
     await write_synthesized_code_to_file(synthesized_stages)
 
 # generate
+async def automate_split_pipeline_stages(model):
+
+    # Load your prompt template
+    with open("./lester_frontend/rewrite/my_prompt.txt", "r") as f:
+        prompt_template = f.read()
+
+    # Load your line seperated code
+    with open("./lester_frontend/json_output/output.json", "r") as f:
+        code_json = json.load(f)
+
+    code_json_str = json.dumps(code_json, indent=2)
+    final_prompt = prompt_template.replace("{code_json}", code_json_str)
+    response = model.invoke(final_prompt)
+    json_response = extract_code(response)
+    stages = json.loads(json_response)
+    
+    with open ("lester_frontend/pipeline_stages/stage_to_lines.json", "w") as stages_f:
+        json.dump(stages, stages_f, indent=2)
+
+    # print(f"ML Pipeline has been seperated into the following phases: {stages}")
+
+    return stages
+
+# generate
 def test_generate_synthesized_pipeline(code_stages, inputs, model):
 
     dataprep_org_code = code_stages.get('data_preparation')
@@ -84,27 +110,3 @@ def test_generate_synthesized_pipeline(code_stages, inputs, model):
     # model_task.set_synthesized_code("test model synthesized code")
 
     return data_task, feature_task, model_task
-
-# generate
-def automate_split_pipeline_stages(model):
-
-    # Load your prompt template
-    with open("./lester_frontend/rewrite/my_prompt.txt", "r") as f:
-        prompt_template = f.read()
-
-    # Load your line seperated code
-    with open("./lester_frontend/json_output/output.json", "r") as f:
-        code_json = json.load(f)
-
-    code_json_str = json.dumps(code_json, indent=2)
-    final_prompt = prompt_template.replace("{code_json}", code_json_str)
-    response = model.invoke(final_prompt)
-    json_response = extract_code(response)
-    stages = json.loads(json_response)
-    
-    with open ("lester_frontend/pipeline_stages/stage_to_lines.json", "w") as stages_f:
-        json.dump(stages, stages_f, indent=2)
-
-    # print(f"ML Pipeline has been seperated into the following phases: {stages}")
-
-    return stages

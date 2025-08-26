@@ -2,10 +2,6 @@ from lester.benchmark import DataprepCodeTransformationTask
 from lester.benchmark import FeaturisationCodeTransformationTask
 from lester.benchmark import ModelCodeTransformationTask
 
-# Should the other methods also become variables?
-# Originally I had them as @Property but in the rewrite/__init__.py file
-# Sebastian only uses the @Property keyword to define the original_code attribute
-
 
 class LLMDataprepTask(DataprepCodeTransformationTask):
 

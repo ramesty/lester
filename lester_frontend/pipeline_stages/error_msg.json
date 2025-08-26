@@ -1,5 +1,5 @@
 {
-  "DATAPREP_SYNTHESIZED": "The data preperation phase has failed with the following error ",
-  "FEATURE_SYNTHESIZED": "The featurisation phase has failed with the following error ",
+  "DATAPREP_SYNTHESIZED": "",
+  "FEATURE_SYNTHESIZED": "",
   "MODEL_SYNTHESIZED": ""
 }
