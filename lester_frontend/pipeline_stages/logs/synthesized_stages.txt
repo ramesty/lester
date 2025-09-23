@@ -7,14 +7,13 @@ DATAPREP_SYNTHESIZED:
 def __dataprep(customers_file, mails_file):
     import os
     from transformers import pipeline
-    import warnings
     import lester as ld
-
     os.environ["TOKENIZERS_PARALLELISM"] = "False"
+    import warnings
+
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     target_countries = ['UK', 'DE', 'FR']
-    
     sentiment_predictor = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
 
     def matches_usecase(text):
@@ -23,24 +22,42 @@ def __dataprep(customers_file, mails_file):
     def sanitize(text):
         return text.lower()
 
-    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=",", parse_dates=False)
-    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=",", parse_dates=False)
+    # Load customer data
+    customers_df = ld.read_csv(customers_file, header=None, names=['customer_id', 'customer_email', 'bank', 'country', 'level'], sep=',', parse_dates=False)
     
+    # Filter target countries
     customers_df = customers_df.filter("country in @target_countries")
-    customers_df = customers_df.project('is_premium', ['level'], lambda x: x == 'premium')
+    
+    # Create is_premium column
+    customers_df = customers_df.project('is_premium', ['level'], lambda level: level == 'premium')
+    
+    # Select necessary columns
     customers_df = customers_df[['customer_email', 'bank', 'country', 'is_premium']]
-
+    
+    # Load mails data
+    mails_df = ld.read_csv(mails_file, header=None, names=['mail_id', 'email', 'raw_date', 'mail_subject', 'mail_text'], sep=',', parse_dates=False)
+    
+    # Extract mail year
     mails_df = mails_df.project('mail_year', ['raw_date'], lambda raw_date: int(raw_date.split("-")[0]))
+    
+    # Filter mails from 2022 onwards
     mails_df = mails_df.filter("mail_year >= 2022")
-
+    
+    # Join customer data with mails data
     merged_df = ld.join(mails_df, customers_df, left_on='email', right_on='customer_email')
-
+    
+    # Sanitize mail subject
     merged_df = merged_df.project('title', ['mail_subject'], sanitize)
+    
+    # Sanitize mail text
     merged_df = merged_df.project('text', ['mail_text'], sanitize)
+    
+    # Analyze sentiment
     merged_df = merged_df.project('sentiment', ['mail_text'], lambda text: sentiment_predictor(text)[0]['label'].lower())
-
+    
+    # Select final columns
     result_df = merged_df[['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']]
-
+    
     return result_df
 
  ----------------------------------------------- 
@@ -55,37 +72,47 @@ def __featurise():
     from sklearn.pipeline import Pipeline
     from sklearn.compose import ColumnTransformer
     from sentence_transformers import SentenceTransformer
+    from sklearn.model_selection import train_test_split
+    import pandas as pd
 
     class SentenceEmbeddingTransformer(BaseEstimator, TransformerMixin):
-        def __init__(self, model_name="all-mpnet-base-v2"):
+        def __init__(self, model_name='all-mpnet-base-v2'):
             self.model_name = model_name
-            self.embedder = SentenceTransformer(self.model_name)
+            self.embedder = SentenceTransformer(model_name)
 
         def fit(self, X, y=None):
             return self
 
-        def transform(self, X):
+        def transform(self, X, y=None):
             return self.embedder.encode(X)
 
     class TitleLengthTransformer(BaseEstimator, TransformerMixin):
         def fit(self, X, y=None):
             return self
 
-        def transform(self, X):
+        def transform(self, X, y=None):
             title_lengths = np.array([len(title) for title in X])
-            title_lengths = title_lengths.reshape(-1, 1)
-            return title_lengths
+            return title_lengths.reshape(-1, 1)
 
-    # Define the ColumnTransformer
+    # Load data
+    df = pd.read_csv(".scratchspace/__intermediate.csv", sep="\t", header=None)
+    df.columns = ['title', 'text', 'bank', 'country', 'sentiment', 'is_premium']
+
+    # Define transformers
+    sentence_embedding_transformer = SentenceEmbeddingTransformer()
+    title_length_transformer = Pipeline([
+        ('length', TitleLengthTransformer()),
+        ('scaler', StandardScaler())
+    ])
+    country_onehot_transformer = OneHotEncoder(categories=[['DE', 'FR', 'UK']], drop=None)
+
+    # Define column transformer
     preprocessor = ColumnTransformer(
         transformers=[
-            ('title_embedding', SentenceEmbeddingTransformer(), 'title'),
-            ('text_embedding', SentenceEmbeddingTransformer(), 'text'),
-            ('title_length', Pipeline([
-                ('length', TitleLengthTransformer()),
-                ('scaler', StandardScaler())
-            ]), 'title'),
-            ('country_onehot', OneHotEncoder(categories=[['DE', 'FR', 'UK']], drop=None), ['country'])
+            ('title_embedding', sentence_embedding_transformer, 'title'),
+            ('text_embedding', sentence_embedding_transformer, 'text'),
+            ('title_length', title_length_transformer, 'title'),
+            ('country_onehot', country_onehot_transformer, ['country'])
         ]
     )
 
@@ -110,4 +137,5 @@ def __model(num_features):
 
     model = LogisticRegressionModel(num_features)
     loss = nn.BCELoss()
+
     return model, loss

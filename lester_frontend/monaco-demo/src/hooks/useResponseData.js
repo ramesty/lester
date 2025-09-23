@@ -52,8 +52,4 @@ export function useResponseData(){
         return () => disposable.dispose();
     }, [responseHighlightMap]);
 
-    // useEffect(() => {
-    //     console.log("responseDecorations updated:", responseDecorations);
-    // }, [responseDecorations]);
-
 }

@@ -1,5 +1,5 @@
 {
-  "DATAPREP_SYNTHESIZED": "",
+  "DATAPREP_SYNTHESIZED": "The data preperation stage has failed with the following error Traceback (most recent call last):\n  File \"C:\\Users\\rames\\OneDrive\\Desktop\\Desktop (All)\\DEEM\\lester\\lester_frontend\\backend\\utils\\test_utils.py\", line 26, in run_dataprep_tests\n    await test_dataprep(__dataprep, source_paths)\n  File \"C:\\Users\\rames\\OneDrive\\Desktop\\Desktop (All)\\DEEM\\lester\\lester_frontend\\backend\\utils\\test_utils.py\", line 72, in test_dataprep\n    assert expected_output.shape == tracked_df.df.shape, f\"Shape mismatch. EO shape: {expected_output.shape}, TDF shape: {tracked_df.df.shape}\"\nAssertionError: Shape mismatch. EO shape: (80, 8), TDF shape: (0, 8)\n",
   "FEATURE_SYNTHESIZED": "",
   "MODEL_SYNTHESIZED": ""
 }
